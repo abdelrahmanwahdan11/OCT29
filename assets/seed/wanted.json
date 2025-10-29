@@ -1,0 +1,15 @@
+[
+  {
+    "id": "want_001",
+    "title": "PlayStation 5 Bundle",
+    "specs": "Disc edition with two controllers and FIFA",
+    "budgetMin": 1800,
+    "budgetMax": 2300,
+    "location": "Jeddah",
+    "radiusKm": 30,
+    "timeframe": "within 5 days",
+    "images": [
+      "https://images.unsplash.com/photo-1606813902915-e8519ca530b1?q=80&w=1200"
+    ]
+  }
+]

@@ -1,0 +1,48 @@
+[
+  {
+    "id": "auc_001",
+    "listing": {
+      "id": "lst_001",
+      "title": "iPhone 14 Pro Max",
+      "description": "256GB, Deep Purple, pristine condition with box and accessories.",
+      "category": "Electronics",
+      "brand": "Apple",
+      "condition": "Like New",
+      "images": [
+        "https://images.unsplash.com/photo-1661961110671-3716c19ff777?q=80&w=1200",
+        "https://images.unsplash.com/photo-1585060544812-6f3a26ae74c8?q=80&w=1200"
+      ],
+      "videoUrl": null,
+      "location": "Riyadh",
+      "deliveryOptions": ["Courier", "Pickup"]
+    },
+    "auction": {
+      "listingId": "lst_001",
+      "startPrice": 3500,
+      "reservePrice": 4200,
+      "buyNowPrice": 5200,
+      "incrementRule": 50,
+      "endTimeUtc": "2024-12-31T22:00:00Z",
+      "antiSniping": true,
+      "proxyEnabled": true
+    },
+    "bids": [
+      {
+        "auctionId": "lst_001",
+        "userId": "usr_002",
+        "amount": 3600,
+        "tsUtc": "2024-10-14T12:00:00Z"
+      }
+    ],
+    "seller": {
+      "id": "usr_001",
+      "name": "Hassan",
+      "email": "hassan@example.com",
+      "phone": "+966500000001",
+      "isGuest": false,
+      "avatarUrl": "https://randomuser.me/api/portraits/men/32.jpg",
+      "kycLevel": 2,
+      "reputation": 4.8
+    }
+  }
+]
