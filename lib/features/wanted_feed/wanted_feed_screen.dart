@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../shared/controllers/app_scope.dart';
 import '../../shared/controllers/catalog_controller.dart';
+import '../../shared/controllers/deck_controller.dart';
 import '../../shared/ui_kit/glass_card.dart';
 import '../../shared/ui_kit/glass_chip.dart';
 import '../../shared/ui_kit/pill_button.dart';
+import '../../shared/ui_kit/swipe_deck.dart';
+import '../../shared/utils/app_localizations.dart';
 import '../../shared/view_models/wanted_view_model.dart';
 
 class WantedFeedScreen extends StatelessWidget {
@@ -14,15 +18,27 @@ class WantedFeedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scope = InheritedAppScope.of(context);
     final wanted = controller.wanted;
     return RefreshIndicator(
       onRefresh: controller.refresh,
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
-        itemCount: wanted.length,
+        itemCount: wanted.length + 1,
         separatorBuilder: (_, __) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
-          final view = wanted[index];
+          if (index == 0) {
+            return SwipeDeck(
+              controller: scope.deckController,
+              channel: DeckChannel.wanted,
+              onDetails: (entry) {
+                if (entry.wanted != null) {
+                  Navigator.of(context).pushNamed('/wanted_details', arguments: entry.wanted);
+                }
+              },
+            );
+          }
+          final view = wanted[index - 1];
           return _WantedCard(view: view).animate().fadeIn(duration: 300.ms).slideX(begin: 0.2);
         },
       ),
@@ -37,6 +53,7 @@ class _WantedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = MazadLocalizations.of(context);
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,9 +74,9 @@ class _WantedCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              PillButton(label: 'قدّم عرضاً', onPressed: () {}),
+              PillButton(label: strings.t('offer_now'), onPressed: () {}),
               const SizedBox(width: 12),
-              PillButton(label: 'اسأل', onPressed: () {}, style: PillButtonStyle.pillIcon),
+              PillButton(label: strings.t('support'), onPressed: () {}, style: PillButtonStyle.pillIcon),
             ],
           ),
         ],

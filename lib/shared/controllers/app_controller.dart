@@ -14,6 +14,8 @@ class AppController extends ChangeNotifier {
 
   ThemeMode get themeMode => _themeMode;
   Locale get locale => _locale;
+  TextDirection get textDirection =>
+      _locale.languageCode.toLowerCase() == 'ar' ? TextDirection.rtl : TextDirection.ltr;
 
   static const _prefsKey = 'app_controller_state';
 
@@ -47,6 +49,20 @@ class AppController extends ChangeNotifier {
       // ignore corrupted state
     }
     notifyListeners();
+  }
+
+  Future<void> toggleTheme() async {
+    final next = switch (_themeMode) {
+      ThemeMode.system => ThemeMode.light,
+      ThemeMode.light => ThemeMode.dark,
+      ThemeMode.dark => ThemeMode.system,
+    };
+    await setThemeMode(next);
+  }
+
+  Future<void> cycleLocale() async {
+    final next = _locale.languageCode == 'ar' ? const Locale('en') : const Locale('ar');
+    await setLocale(next);
   }
 
   Future<void> _persist() async {

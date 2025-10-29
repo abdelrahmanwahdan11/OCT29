@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'app_controller.dart';
 import 'auth_controller.dart';
 import 'catalog_controller.dart';
+import 'deck_controller.dart';
 import 'chat_controller.dart';
 import 'orders_controller.dart';
 import 'wallet_controller.dart';
@@ -14,6 +15,7 @@ class InheritedAppScope extends InheritedWidget {
     required this.appController,
     required this.authController,
     required this.catalogController,
+    required this.deckController,
     required this.walletController,
     required this.chatController,
     required this.ordersController,
@@ -22,6 +24,7 @@ class InheritedAppScope extends InheritedWidget {
   final AppController appController;
   final AuthController authController;
   final CatalogController catalogController;
+  final DeckController deckController;
   final WalletController walletController;
   final ChatController chatController;
   final OrdersController ordersController;
@@ -37,6 +40,7 @@ class InheritedAppScope extends InheritedWidget {
     return appController != oldWidget.appController ||
         authController != oldWidget.authController ||
         catalogController != oldWidget.catalogController ||
+        deckController != oldWidget.deckController ||
         walletController != oldWidget.walletController ||
         chatController != oldWidget.chatController ||
         ordersController != oldWidget.ordersController;

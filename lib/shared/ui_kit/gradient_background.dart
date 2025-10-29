@@ -12,10 +12,16 @@ class GradientBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gradientColors = isDark
+        ? const [Color(0xFF0B1A24), Color(0xFF0E2A3A)]
+        : const [Color(0xFF0EA5E9), Color(0xFF22D3EE)];
+    final overlay = isDark ? Colors.black.withOpacity(0.35) : Colors.white.withOpacity(0.12);
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0EA5E9), Color(0xFF22D3EE)],
+        gradient: LinearGradient(
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -24,18 +30,15 @@ class GradientBackground extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           Positioned.fill(
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return const Center(child: CircularProgressIndicator());
-              },
+            child: Opacity(
+              opacity: 0.06,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-          Positioned.fill(
-            child: Container(color: Colors.white.withOpacity(0.18)),
-          ),
+          Positioned.fill(child: ColoredBox(color: overlay)),
           child,
         ],
       ),

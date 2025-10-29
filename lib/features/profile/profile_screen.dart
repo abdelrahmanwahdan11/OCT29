@@ -7,6 +7,7 @@ import '../../shared/ui_kit/glass_card.dart';
 import '../../shared/ui_kit/glass_chip.dart';
 import '../../shared/ui_kit/glass_badge.dart';
 import '../../shared/ui_kit/pill_button.dart';
+import '../../shared/utils/app_localizations.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, required this.authController, required this.appController});
@@ -17,6 +18,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = authController.currentUser;
+    final strings = MazadLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -30,28 +32,28 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 GlassChip(label: user.email),
                 const SizedBox(height: 8),
-                GlassBadge(label: 'السمعة ${user.reputation}'),
+                GlassBadge(label: '${strings.t('reviews_feedback')} ${user.reputation}'),
                 const SizedBox(height: 16),
                 PillButton(
-                  label: 'تسجيل الخروج',
+                  label: strings.t('logout'),
                   onPressed: () => authController.logout(),
                 ),
               ],
             ),
           ).animate().fadeIn(duration: 350.ms).scale(begin: const Offset(0.95, 0.95)),
         const SizedBox(height: 24),
-        Text('الإعدادات', style: Theme.of(context).textTheme.titleMedium),
+        Text(strings.t('settings'), style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
         GlassCard(
           child: Column(
             children: [
               SwitchListTile(
-                title: const Text('الوضع الليلي'),
+                title: Text(strings.t('settings_theme')),
                 value: appController.themeMode == ThemeMode.dark,
                 onChanged: (value) => appController.setThemeMode(value ? ThemeMode.dark : ThemeMode.light),
               ),
               SwitchListTile(
-                title: const Text('اللغة العربية'),
+                title: Text(strings.t('settings_language')),
                 value: appController.locale.languageCode == 'ar',
                 onChanged: (value) => appController.setLocale(value ? const Locale('ar') : const Locale('en')),
               ),

@@ -6,6 +6,7 @@ import '../../shared/ui_kit/glass_chip.dart';
 import '../../shared/ui_kit/glass_card.dart';
 import '../../shared/view_models/auction_view_model.dart';
 import '../../shared/view_models/wanted_view_model.dart';
+import '../../shared/utils/app_localizations.dart';
 import '../../shared/utils/search_index.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -43,6 +44,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
+    final strings = MazadLocalizations.of(context);
     return Column(
       children: [
         Padding(
@@ -50,7 +52,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           child: TextField(
             controller: controller.searchController.queryController,
             decoration: InputDecoration(
-              hintText: 'ابحث عن مزاد أو طلب',
+              hintText: strings.t('search_hint'),
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: ValueListenableBuilder(
                 valueListenable: scope,
@@ -61,10 +63,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       scope.value = value;
                       _onSearchChanged();
                     },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(value: SearchScope.all, child: Text('الكل')),
-                      PopupMenuItem(value: SearchScope.auctions, child: Text('مزادات')),
-                      PopupMenuItem(value: SearchScope.wanted, child: Text('طلبات')),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(value: SearchScope.all, child: Text(strings.t('scope_all'))),
+                      PopupMenuItem(value: SearchScope.auctions, child: Text(strings.t('scope_auctions'))),
+                      PopupMenuItem(value: SearchScope.wanted, child: Text(strings.t('scope_wanted'))),
                     ],
                   );
                 },
@@ -87,7 +89,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       return ListTile(
                         title: Text(result.title),
                         subtitle: Text(result.subtitle),
-                        trailing: Text(result.type == SearchScope.auctions ? 'مزاد' : 'طلب'),
+                        trailing: Text(result.type == SearchScope.auctions
+                            ? strings.t('scope_auctions')
+                            : strings.t('scope_wanted')),
                       );
                     },
                   ),

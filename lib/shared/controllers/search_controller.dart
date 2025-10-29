@@ -20,6 +20,12 @@ class SearchController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clear() {
+    if (queryController.text.isEmpty) return;
+    queryController.clear();
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     queryController.dispose();

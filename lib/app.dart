@@ -10,8 +10,10 @@ import 'shared/controllers/app_scope.dart';
 import 'shared/controllers/auth_controller.dart';
 import 'shared/controllers/catalog_controller.dart';
 import 'shared/controllers/chat_controller.dart';
+import 'shared/controllers/deck_controller.dart';
 import 'shared/controllers/orders_controller.dart';
 import 'shared/controllers/wallet_controller.dart';
+import 'shared/utils/app_localizations.dart';
 import 'shared/services/clock_sync_mock.dart';
 import 'shared/services/notifications_mock.dart';
 
@@ -33,6 +35,7 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
   late final AppController appController;
   late final AuthController authController;
   late final CatalogController catalogController;
+  late final DeckController deckController;
   late final WalletController walletController;
   late final ChatController chatController;
   late final OrdersController ordersController;
@@ -47,6 +50,7 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
     appController = AppController(storage: widget.storage)..bootstrap();
     authController = AuthController(storage: widget.storage)..bootstrap();
     catalogController = CatalogController();
+    deckController = DeckController();
     walletController = WalletController(clock: clock);
     chatController = ChatController(clock: clock, notifications: notifications);
     ordersController = OrdersController(clock: clock);
@@ -61,6 +65,7 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
 
     // ignore: discarded_futures
     catalogController.bootstrap();
+    catalogController.addListener(_syncDeck);
     // ignore: discarded_futures
     walletController.bootstrap();
     // ignore: discarded_futures
@@ -82,6 +87,7 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
               appController: appController,
               authController: authController,
               catalogController: catalogController,
+              deckController: deckController,
               walletController: walletController,
               chatController: chatController,
               ordersController: ordersController,
@@ -93,12 +99,20 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
                 darkTheme: theme.dark,
                 themeMode: appController.themeMode,
                 locale: appController.locale,
-                supportedLocales: const [Locale('en'), Locale('ar')],
+                supportedLocales: MazadLocalizations.supportedLocales,
                 localizationsDelegates: const [
                   GlobalMaterialLocalizations.delegate,
                   GlobalWidgetsLocalizations.delegate,
                   GlobalCupertinoLocalizations.delegate,
+                  MazadLocalizationsDelegate(),
                 ],
+                builder: (context, child) {
+                  final direction = appController.textDirection;
+                  return Directionality(
+                    textDirection: direction,
+                    child: child ?? const SizedBox.shrink(),
+                  );
+                },
               ),
             );
           },
@@ -107,11 +121,20 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
     );
   }
 
+  void _syncDeck() {
+    deckController.sync(
+      auctions: catalogController.auctions,
+      wanted: catalogController.wanted,
+    );
+  }
+
   @override
   void dispose() {
+    catalogController.removeListener(_syncDeck);
     appController.dispose();
     authController.dispose();
     catalogController.dispose();
+    deckController.dispose();
     walletController.dispose();
     chatController.dispose();
     ordersController.dispose();

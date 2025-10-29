@@ -30,5 +30,3 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.1
 
-flutter_intl:
-  enabled: true
