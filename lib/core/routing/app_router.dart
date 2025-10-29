@@ -21,9 +21,11 @@ import '../../features/support/support_screen.dart';
 import '../../features/wallet/wallet_screen.dart';
 import '../../features/wanted_details/wanted_details_screen.dart';
 import '../../features/wanted_feed/wanted_feed_screen.dart';
+import '../../features/content/static_content_screens.dart';
 import '../../shared/controllers/app_controller.dart';
 import '../../shared/controllers/auth_controller.dart';
 import '../../shared/controllers/catalog_controller.dart';
+import '../../shared/controllers/content_controller.dart';
 import '../../shared/services/notifications_mock.dart';
 import '../../shared/ui_kit/empty_state.dart';
 import '../../shared/ui_kit/frosted_app_bar.dart';
@@ -39,6 +41,7 @@ class AppRouter {
     required this.appController,
     required this.authController,
     required this.catalogController,
+    required this.contentController,
     required this.notifications,
   });
 
@@ -46,6 +49,7 @@ class AppRouter {
   final AppController appController;
   final AuthController authController;
   final CatalogController catalogController;
+  final ContentController contentController;
   final NotificationsMock notifications;
 
   String get initialRoute => '/onboarding_or_home';
@@ -90,6 +94,11 @@ class AppRouter {
         return _material(const ReviewsScreen());
       case '/support':
         return _material(const SupportScreen());
+      case '/content':
+        return _material(StaticContentListScreen(controller: contentController));
+      case '/content_detail':
+        final key = settings.arguments as String? ?? '';
+        return _material(StaticContentDetailScreen(controller: contentController, pageKey: key));
       case '/create_auction':
         return _material(const CreateAuctionScreen());
       case '/create_wanted':
@@ -266,6 +275,7 @@ class _MainShellState extends State<_MainShell> {
       _QuickLink(label: strings.t('favorites'), route: '/favorites', icon: Icons.favorite_outline),
       _QuickLink(label: strings.t('reviews'), route: '/reviews', icon: Icons.star_border),
       _QuickLink(label: strings.t('support'), route: '/support', icon: Icons.support_agent_outlined),
+      _QuickLink(label: strings.t('static_pages'), route: '/content', icon: Icons.menu_book_outlined),
       _QuickLink(label: strings.t('merchant_dashboard'), route: '/merchant', icon: Icons.dashboard_outlined),
     ];
   }

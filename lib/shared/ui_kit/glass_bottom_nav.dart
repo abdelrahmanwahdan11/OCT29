@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import 'blur_container.dart';
-
 class GlassNavItemData {
   const GlassNavItemData({required this.icon, required this.label});
 
@@ -24,25 +22,32 @@ class GlassBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: BlurContainer(
-        borderRadius: 24,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            for (var i = 0; i < items.length; i++)
-              _GlassNavItem(
-                icon: items[i].icon,
-                label: items[i].label,
-                index: i,
-                currentIndex: currentIndex,
-                onTap: onChanged,
-              ),
-          ],
+      child: Material(
+        elevation: 12,
+        color: scheme.surface,
+        shadowColor: scheme.shadow.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(
+                  child: _GlassNavItem(
+                    icon: items[i].icon,
+                    label: items[i].label,
+                    index: i,
+                    currentIndex: currentIndex,
+                    onTap: onChanged,
+                  ),
+                ),
+            ],
+          ),
         ),
-      ).animate().fade(duration: 500.ms).scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack),
+      ).animate().fade(duration: 400.ms).scale(begin: const Offset(0.96, 0.96), curve: Curves.easeOutBack),
     );
   }
 }
@@ -66,33 +71,38 @@ class _GlassNavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isActive = index == currentIndex;
     final colorScheme = Theme.of(context).colorScheme;
-    return GestureDetector(
+    return InkWell(
       onTap: () => onTap(index),
-      child: AnimatedContainer(
-        duration: 250.ms,
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.white.withOpacity(0.28) : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              color: isActive ? colorScheme.primary : colorScheme.onSurface.withOpacity(0.7),
+              color: isActive ? colorScheme.primary : colorScheme.onSurfaceVariant,
             ),
-            if (isActive)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface,
-                      ),
-                ).animate().fade(duration: 200.ms).slide(begin: const Offset(0.2, 0)),
+            const SizedBox(height: 6),
+            AnimatedDefaultTextStyle(
+              duration: 200.ms,
+              curve: Curves.easeOut,
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                    color: isActive ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  ),
+              child: Text(label, textAlign: TextAlign.center),
+            ),
+            const SizedBox(height: 6),
+            AnimatedContainer(
+              duration: 200.ms,
+              height: 4,
+              width: isActive ? 24 : 4,
+              decoration: BoxDecoration(
+                color: isActive ? colorScheme.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
               ),
+            ),
           ],
         ),
       ),

@@ -1,0 +1,100 @@
+{
+  "how_it_works": {
+    "title_ar": "كيف يعمل التطبيق",
+    "title_en": "How It Works",
+    "content_ar": [
+      "١) ابحث أو استكشف العروض.",
+      "٢) زايد بأمان — يتم حجز المبلغ (وهميًا) حتى الاستلام.",
+      "٣) أكمل الطلب واترك تقييمك."
+    ],
+    "content_en": [
+      "1) Search or browse curated auctions and requests.",
+      "2) Bid with confidence — funds stay in escrow (mock) until delivery.",
+      "3) Complete the order and share your review."
+    ]
+  },
+  "terms": {
+    "title_ar": "الشروط والأحكام",
+    "title_en": "Terms & Conditions",
+    "content_ar": [
+      "باستخدام التطبيق فإنك توافق على الشروط المحلية الواردة هنا.",
+      "المزاد والتعاملات تتم بشكل تجريبي بدون التزامات مالية حقيقية." 
+    ],
+    "content_en": [
+      "By using Mazad & Wanted you accept the policies described here.",
+      "All auctions are simulated locally with no real financial obligations." 
+    ]
+  },
+  "privacy": {
+    "title_ar": "سياسة الخصوصية",
+    "title_en": "Privacy Policy",
+    "content_ar": [
+      "لا يتم إرسال أي بيانات إلى خوادم خارجية.",
+      "يتم حفظ التفضيلات محليًا باستخدام shared_preferences فقط."
+    ],
+    "content_en": [
+      "No personal data leaves your device.",
+      "Preferences are stored locally with shared_preferences only."
+    ]
+  },
+  "faq": {
+    "title_ar": "الأسئلة الشائعة",
+    "title_en": "FAQ",
+    "content_ar": [
+      "هل أستطيع الدخول كضيف؟ نعم مع صلاحيات محدودة.",
+      "كيف أحمي نفسي من العروض الوهمية؟ استخدم خاصية التقييمات والإبلاغ."
+    ],
+    "content_en": [
+      "Can I browse as a guest? Yes, with limited permissions.",
+      "How do I stay safe? Check reputation and use the report tools."
+    ]
+  },
+  "support_guides": {
+    "title_ar": "إرشادات الدعم والنزاعات",
+    "title_en": "Support & Disputes Guide",
+    "content_ar": [
+      "في حال وجود نزاع قم بتوثيق الحالة برفع صور.",
+      "استخدم الدردشة للتواصل قبل فتح النزاع."
+    ],
+    "content_en": [
+      "Document issues with images before escalating.",
+      "Use chat to clarify expectations before opening a dispute."
+    ]
+  },
+  "seller_guide": {
+    "title_ar": "دليل البائع",
+    "title_en": "Seller Guide",
+    "content_ar": [
+      "التزم بوصف دقيق للمنتج وحدد خيارات التوصيل بوضوح.",
+      "استخدم العروض الترويجية في لوحة التاجر لإبراز منتجاتك."
+    ],
+    "content_en": [
+      "Describe your listing clearly and outline delivery expectations.",
+      "Use the merchant dashboard promos to highlight inventory."
+    ]
+  },
+  "buyer_guide": {
+    "title_ar": "دليل المشتري",
+    "title_en": "Buyer Guide",
+    "content_ar": [
+      "تأكد من تقييم البائعين قبل تقديم العرض.",
+      "استخدم البحث العالمي لحفظ طلباتك المفضلة." 
+    ],
+    "content_en": [
+      "Review seller reputation before bidding or offering.",
+      "Save searches to revisit matching auctions later." 
+    ]
+  },
+  "about": {
+    "title_ar": "نبذة عن التطبيق",
+    "title_en": "About",
+    "content_ar": [
+      "Mazad & Wanted منصة تجريبية لعرض المزادات وطلبات الشراء.",
+      "المرحلة الثالثة تقدم هوية بصرية جديدة وتجربة كاملة بدون خوادم."
+    ],
+    "content_en": [
+      "Mazad & Wanted is a concept marketplace for auctions and wanted requests.",
+      "Phase three introduces the NeoCard Minimal identity with fully local data."
+    ]
+  }
+}

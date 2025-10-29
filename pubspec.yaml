@@ -12,6 +12,7 @@ flutter:
     - assets/seed/auctions.json
     - assets/seed/wanted.json
     - assets/seed/images.json
+    - assets/seed/static_pages.json
     - assets/icons/
     - assets/illustrations/
 

@@ -21,23 +21,34 @@ class GlassChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? colors.primary.withOpacity(0.25) : Colors.white.withOpacity(0.2),
-          border: Border.all(color: Colors.white.withOpacity(0.5)),
-          borderRadius: BorderRadius.circular(28),
+          color: selected ? colors.primaryContainer : colors.surfaceVariant,
+          border: Border.all(
+            color: selected ? colors.primary.withOpacity(0.4) : colors.outline.withOpacity(0.3),
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            if (selected)
+              BoxShadow(
+                color: colors.primary.withOpacity(0.15),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 18, color: colors.onSurface),
+              Icon(icon, size: 18, color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant),
               const SizedBox(width: 6),
             ],
             Text(
               label,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: colors.onSurface,
+                    color: selected ? colors.onPrimaryContainer : colors.onSurface,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   ),
             ),
           ],

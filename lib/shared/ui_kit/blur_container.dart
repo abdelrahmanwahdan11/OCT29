@@ -1,8 +1,4 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-
-import '../../core/theme/app_theme.dart';
 
 class BlurContainer extends StatelessWidget {
   const BlurContainer({
@@ -20,46 +16,25 @@ class BlurContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final glass = Theme.of(context).extension<GlassThemeExtension>();
-    final content = ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: glass?.blurSigma ?? 18, sigmaY: glass?.blurSigma ?? 18),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withOpacity(0.35),
-                Colors.white.withOpacity(0.15),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border.all(
-              color: glass?.borderColor ?? Colors.white.withOpacity(0.5),
-              width: glass?.borderWidth ?? 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: glass?.shadowColor ?? Colors.black.withOpacity(0.15),
-                offset: const Offset(0, 12),
-                blurRadius: 28,
-              ),
-            ],
-          ),
-          child: ColoredBox(
-            color: Colors.white.withOpacity(0.08),
-            child: Padding(
-              padding: padding ?? const EdgeInsets.all(16),
-              child: child,
-            ),
-          ),
-        ),
+    final theme = Theme.of(context);
+    final shapeRadius = BorderRadius.circular(borderRadius);
+    final content = Material(
+      color: theme.colorScheme.surface,
+      elevation: theme.brightness == Brightness.dark ? 8 : 6,
+      shadowColor: theme.colorScheme.shadow.withOpacity(theme.brightness == Brightness.dark ? 0.24 : 0.12),
+      borderRadius: shapeRadius,
+      child: Padding(
+        padding: padding ?? const EdgeInsets.all(16),
+        child: child,
       ),
     );
 
     if (onTap != null) {
-      return GestureDetector(onTap: onTap, child: content);
+      return InkWell(
+        borderRadius: shapeRadius,
+        onTap: onTap,
+        child: content,
+      );
     }
     return content;
   }

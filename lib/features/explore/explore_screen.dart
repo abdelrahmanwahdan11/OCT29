@@ -26,11 +26,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void initState() {
     super.initState();
     widget.controller.searchController.addListener(_onSearchChanged);
+    widget.controller.addListener(_onCatalogChanged);
   }
 
   @override
   void dispose() {
     widget.controller.searchController.removeListener(_onSearchChanged);
+    widget.controller.removeListener(_onCatalogChanged);
     scope.dispose();
     super.dispose();
   }
@@ -39,6 +41,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final query = widget.controller.searchController.query;
     results = widget.controller.search(query, scope: scope.value);
     setState(() {});
+  }
+
+  void _onCatalogChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -75,6 +83,44 @@ class _ExploreScreenState extends State<ExploreScreen> {
             onSubmitted: (_) => _onSearchChanged(),
           ),
         ),
+        if (controller.savedSearches.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final saved in controller.savedSearches)
+                    GlassChip(
+                      label: saved.query,
+                      icon: Icons.history_toggle_off,
+                      onTap: () {
+                        scope.value = saved.scope;
+                        controller.searchController.queryController.text = saved.query;
+                        _onSearchChanged();
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+        if (results.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                icon: const Icon(Icons.bookmark_add_outlined),
+                label: Text(strings.t('save_search')),
+                onPressed: () => controller.saveSearch(
+                  controller.searchController.query,
+                  scope.value,
+                ),
+              ),
+            ),
+          ),
         Expanded(
           child: AnimatedSwitcher(
             duration: 300.ms,

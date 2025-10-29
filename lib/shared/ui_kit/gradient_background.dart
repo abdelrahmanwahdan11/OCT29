@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
+
 class GradientBackground extends StatelessWidget {
   const GradientBackground({
     super.key,
@@ -12,26 +14,32 @@ class GradientBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gradientColors = isDark
-        ? const [Color(0xFF0B1A24), Color(0xFF0E2A3A)]
-        : const [Color(0xFF0EA5E9), Color(0xFF22D3EE)];
-    final overlay = isDark ? Colors.black.withOpacity(0.35) : Colors.white.withOpacity(0.12);
+    final theme = Theme.of(context);
+    final tokens = theme.extension<NeoTokens>() ??
+        const NeoTokens(
+          cardRadius: 22,
+          navRadius: 24,
+          appBarRadius: 20,
+          inputRadius: 18,
+          chipRadius: 18,
+          backgroundImageOpacity: 0.03,
+          backgroundOverlayLight: Color(0x0AFFFFFF),
+          backgroundOverlayDark: Color(0x24000000),
+        );
+    final overlay = theme.brightness == Brightness.dark
+        ? tokens.backgroundOverlayDark
+        : tokens.backgroundOverlayLight;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: theme.colorScheme.background,
       ),
       child: Stack(
         fit: StackFit.expand,
         children: [
           Positioned.fill(
             child: Opacity(
-              opacity: 0.06,
+              opacity: tokens.backgroundImageOpacity,
               child: Image.network(
                 imageUrl,
                 fit: BoxFit.cover,

@@ -7,6 +7,7 @@ import 'deck_controller.dart';
 import 'chat_controller.dart';
 import 'orders_controller.dart';
 import 'wallet_controller.dart';
+import 'content_controller.dart';
 
 class InheritedAppScope extends InheritedWidget {
   const InheritedAppScope({
@@ -19,6 +20,7 @@ class InheritedAppScope extends InheritedWidget {
     required this.walletController,
     required this.chatController,
     required this.ordersController,
+    required this.contentController,
   });
 
   final AppController appController;
@@ -28,6 +30,7 @@ class InheritedAppScope extends InheritedWidget {
   final WalletController walletController;
   final ChatController chatController;
   final OrdersController ordersController;
+  final ContentController contentController;
 
   static InheritedAppScope of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<InheritedAppScope>();
@@ -43,6 +46,7 @@ class InheritedAppScope extends InheritedWidget {
         deckController != oldWidget.deckController ||
         walletController != oldWidget.walletController ||
         chatController != oldWidget.chatController ||
-        ordersController != oldWidget.ordersController;
+        ordersController != oldWidget.ordersController ||
+        contentController != oldWidget.contentController;
   }
 }

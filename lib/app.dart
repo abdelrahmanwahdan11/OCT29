@@ -13,6 +13,7 @@ import 'shared/controllers/chat_controller.dart';
 import 'shared/controllers/deck_controller.dart';
 import 'shared/controllers/orders_controller.dart';
 import 'shared/controllers/wallet_controller.dart';
+import 'shared/controllers/content_controller.dart';
 import 'shared/utils/app_localizations.dart';
 import 'shared/services/clock_sync_mock.dart';
 import 'shared/services/notifications_mock.dart';
@@ -39,6 +40,7 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
   late final WalletController walletController;
   late final ChatController chatController;
   late final OrdersController ordersController;
+  late final ContentController contentController;
   late final AppRouter router;
 
   @override
@@ -49,17 +51,19 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
 
     appController = AppController(storage: widget.storage)..bootstrap();
     authController = AuthController(storage: widget.storage)..bootstrap();
-    catalogController = CatalogController();
+    catalogController = CatalogController(storage: widget.storage);
     deckController = DeckController();
     walletController = WalletController(clock: clock);
     chatController = ChatController(clock: clock, notifications: notifications);
     ordersController = OrdersController(clock: clock);
+    contentController = ContentController();
 
     router = AppRouter(
       environment: widget.environment,
       appController: appController,
       authController: authController,
       catalogController: catalogController,
+      contentController: contentController,
       notifications: notifications,
     );
 
@@ -72,6 +76,8 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
     chatController.bootstrap();
     // ignore: discarded_futures
     ordersController.bootstrap();
+    // ignore: discarded_futures
+    contentController.load();
   }
 
   @override
@@ -91,6 +97,7 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
               walletController: walletController,
               chatController: chatController,
               ordersController: ordersController,
+              contentController: contentController,
               child: MaterialApp(
                 debugShowCheckedModeBanner: false,
                 onGenerateRoute: router.onGenerateRoute,
@@ -138,6 +145,7 @@ class _MazadWantedAppState extends State<MazadWantedApp> {
     walletController.dispose();
     chatController.dispose();
     ordersController.dispose();
+    contentController.dispose();
     super.dispose();
   }
 }
