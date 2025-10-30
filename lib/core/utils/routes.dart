@@ -8,4 +8,6 @@ class AppRoutes {
   static const favorites = '/favorites';
   static const profile = '/profile';
   static const itemDetails = '/item';
+  static const collections = '/collections';
+  static const compare = '/compare';
 }

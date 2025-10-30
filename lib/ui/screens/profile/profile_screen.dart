@@ -95,6 +95,16 @@ class ProfileScreen extends StatelessWidget {
             title: Text(localization.translate('policy')),
             onTap: () => _showInfo(context, localization.translate('policy'), 'We respect your privacy.'),
           ),
+          ListTile(
+            leading: const Icon(Icons.collections_bookmark_outlined),
+            title: Text(localization.translate('collections')),
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.collections),
+          ),
+          ListTile(
+            leading: const Icon(Icons.compare_arrows_outlined),
+            title: Text(localization.translate('compare')),
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.compare),
+          ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {

@@ -9,6 +9,7 @@ import '../../../data/models/item.dart';
 import '../../../state/app_state.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/item_card.dart';
+import '../../widgets/item_quick_actions.dart';
 
 class ItemDetailsScreen extends StatefulWidget {
   const ItemDetailsScreen({super.key, required this.itemId});
@@ -102,6 +103,44 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                   summary,
                   localization.translate('share_summary'),
                 ),
+              ),
+              IconButton(
+                tooltip: localization.translate('add_to_collection'),
+                icon: const Icon(Icons.collections_bookmark_outlined),
+                onPressed: () => showCollectionPicker(context, item),
+              ),
+              IconButton(
+                tooltip: appState.isInCompare(item.id)
+                    ? localization.translate('remove_from_compare')
+                    : localization.translate('add_to_compare'),
+                icon: const Icon(Icons.compare_arrows_outlined),
+                onPressed: () async {
+                  if (appState.isInCompare(item.id)) {
+                    await appState.removeFromCompare(item.id);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(localization.translate('remove_from_compare'))),
+                    );
+                  } else {
+                    final added = await appState.addToCompare(item.id);
+                    if (!mounted) return;
+                    if (added) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(localization.translate('add_to_compare')),
+                          action: SnackBarAction(
+                            label: localization.translate('view_more'),
+                            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.compare),
+                          ),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(localization.translate('compare_limit'))),
+                      );
+                    }
+                  }
+                },
               ),
               IconButton(
                 icon: Icon(item.isFavorite ? IconlyBold.heart : IconlyLight.heart),
@@ -252,6 +291,8 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                               onTap: () => Navigator.of(context)
                                   .pushReplacementNamed('${AppRoutes.itemDetails}/${recent.id}'),
                               onFavorite: () => appState.toggleFavorite(recent),
+                              onLongPress: () => showItemQuickActions(context, recent),
+                              onSecondaryTap: () => showItemQuickActions(context, recent),
                             ),
                           );
                         },
@@ -280,6 +321,8 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                           onTap: () => Navigator.of(context)
                               .pushReplacementNamed('${AppRoutes.itemDetails}/${related.id}'),
                           onFavorite: () => appState.toggleFavorite(related),
+                          onLongPress: () => showItemQuickActions(context, related),
+                          onSecondaryTap: () => showItemQuickActions(context, related),
                         ),
                       ),
                     )

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../core/utils/routes.dart';
 import '../data/mock/mock_data.dart';
 import '../data/models/category.dart';
+import '../data/models/collection.dart';
 import '../data/models/item.dart';
 import '../data/models/user.dart';
 import '../data/repositories/catalog_repository.dart';
@@ -41,6 +42,8 @@ class AppState extends ChangeNotifier {
   List<String> _recentlyViewed = [];
   List<String> _savedSearches = [];
   String _sortOrder = 'newest_first';
+  Map<String, Collection> _collections = {};
+  List<String> _compareSelection = [];
 
   static const int _pageSize = 20;
   int _page = 0;
@@ -62,6 +65,13 @@ class AppState extends ChangeNotifier {
   List<String> get searchHistory => List.unmodifiable(_searchHistory);
   List<String> get savedSearches => List.unmodifiable(_savedSearches);
   String get sortOrder => _sortOrder;
+  List<Collection> get collections {
+    final list = _collections.values.toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return list;
+  }
+
+  List<String> get compareSelection => List.unmodifiable(_compareSelection);
 
   List<String> get trendingSearches => const ['Phone', 'Shoes', 'Watch', 'Headphones'];
 
@@ -82,6 +92,17 @@ class AppState extends ChangeNotifier {
     _searchHistory = preferences.getSearchHistory();
     _recentlyViewed = preferences.getRecentlyViewed();
     _savedSearches = preferences.getSavedSearches();
+    final storedCollections = preferences.getCollections();
+    _collections = {for (final collection in storedCollections) collection.id: collection};
+    final storedCompare = preferences.getCompareSelection();
+    final seen = <String>{};
+    _compareSelection = [];
+    for (final id in storedCompare) {
+      if (seen.length >= 3) break;
+      if (seen.add(id)) {
+        _compareSelection.add(id);
+      }
+    }
     final filtersState = preferences.getFiltersState();
     final sortState = preferences.getSortState();
     _selectedCategory = (filtersState['category'] as String?) ?? 'all';
@@ -217,6 +238,128 @@ class AppState extends ChangeNotifier {
       }
     }
     return favoriteItems;
+  }
+
+  Collection? findCollection(String id) => _collections[id];
+
+  Future<Collection> createCollection(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError('Collection name cannot be empty');
+    }
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final collection = Collection(id: id, name: trimmed, itemIds: const []);
+    _collections[id] = collection;
+    await _persistCollections();
+    notifyListeners();
+    return collection;
+  }
+
+  Future<void> renameCollection(String id, String name) async {
+    final trimmed = name.trim();
+    final existing = _collections[id];
+    if (existing == null || trimmed.isEmpty) return;
+    _collections[id] = existing.copyWith(name: trimmed);
+    await _persistCollections();
+    notifyListeners();
+  }
+
+  Future<void> deleteCollection(String id) async {
+    if (_collections.remove(id) != null) {
+      await _persistCollections();
+      notifyListeners();
+    }
+  }
+
+  Future<void> addItemToCollection(String collectionId, String itemId) async {
+    final existing = _collections[collectionId];
+    if (existing == null || existing.itemIds.contains(itemId)) return;
+    final updated = existing.copyWith(itemIds: [...existing.itemIds, itemId]);
+    _collections[collectionId] = updated;
+    await _persistCollections();
+    notifyListeners();
+  }
+
+  Future<void> removeItemFromCollection(String collectionId, String itemId) async {
+    final existing = _collections[collectionId];
+    if (existing == null || !existing.itemIds.contains(itemId)) return;
+    final updated = existing.copyWith(
+      itemIds: existing.itemIds.where((id) => id != itemId).toList(),
+    );
+    _collections[collectionId] = updated;
+    await _persistCollections();
+    notifyListeners();
+  }
+
+  bool isItemInCollection(String collectionId, String itemId) {
+    return _collections[collectionId]?.contains(itemId) ?? false;
+  }
+
+  List<Item> getCollectionItems(String collectionId) {
+    final collection = _collections[collectionId];
+    if (collection == null) return const [];
+    return collection.itemIds
+        .map(findItemById)
+        .whereType<Item>()
+        .map(_applyFavorite)
+        .toList();
+  }
+
+  bool isInCompare(String itemId) => _compareSelection.contains(itemId);
+
+  Future<bool> addToCompare(String itemId) async {
+    if (_compareSelection.contains(itemId)) {
+      return true;
+    }
+    if (_compareSelection.length >= 3) {
+      return false;
+    }
+    _compareSelection.add(itemId);
+    await _persistCompare();
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> removeFromCompare(String itemId) async {
+    if (_compareSelection.remove(itemId)) {
+      await _persistCompare();
+      notifyListeners();
+    }
+  }
+
+  Future<void> clearCompare() async {
+    if (_compareSelection.isEmpty) return;
+    _compareSelection.clear();
+    await _persistCompare();
+    notifyListeners();
+  }
+
+  List<Item> getCompareItems() {
+    return _compareSelection
+        .map(findItemById)
+        .whereType<Item>()
+        .map(_applyFavorite)
+        .toList();
+  }
+
+  String buildCompareSummary() {
+    final buffer = StringBuffer();
+    for (final item in getCompareItems()) {
+      buffer
+        ..writeln(item.title)
+        ..writeln('Price: USD ${item.price.toStringAsFixed(2)}')
+        ..writeln('Brand: ${item.brand}')
+        ..writeln('Rating: ${item.rating}')
+        ..writeln('Category: ${item.category}');
+      if (item.specs.isNotEmpty) {
+        buffer.writeln('Specs:');
+        item.specs.forEach((key, value) {
+          buffer.writeln('- $key: $value');
+        });
+      }
+      buffer.writeln();
+    }
+    return buffer.toString().trim();
   }
 
   bool get isAuthenticated => user != null;
@@ -380,6 +523,14 @@ class AppState extends ChangeNotifier {
       'category': _selectedCategory,
       'filter': _selectedFilter,
     });
+  }
+
+  Future<void> _persistCollections() {
+    return preferences.setCollections(_collections.values.toList());
+  }
+
+  Future<void> _persistCompare() {
+    return preferences.setCompareSelection(_compareSelection);
   }
 }
 

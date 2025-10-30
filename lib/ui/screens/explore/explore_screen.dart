@@ -9,6 +9,7 @@ import '../../../data/models/item.dart';
 import '../../../state/app_state.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/item_card.dart';
+import '../../widgets/item_quick_actions.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -204,6 +205,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             item: displayItem,
                             onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
                             onFavorite: () => _toggleFavorite(item),
+                            onLongPress: () => showItemQuickActions(context, displayItem),
+                            onSecondaryTap: () => showItemQuickActions(context, displayItem),
                           );
                         },
                       )
@@ -218,6 +221,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   item: displayItem,
                                   onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
                                   onFavorite: () => _toggleFavorite(item),
+                                  onLongPress: () => showItemQuickActions(context, displayItem),
+                                  onSecondaryTap: () => showItemQuickActions(context, displayItem),
                                 ),
                               );
                             })

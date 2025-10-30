@@ -12,12 +12,14 @@ class ItemCard extends StatefulWidget {
     required this.onTap,
     required this.onFavorite,
     this.onLongPress,
+    this.onSecondaryTap,
   });
 
   final Item item;
   final VoidCallback onTap;
   final VoidCallback onFavorite;
   final VoidCallback? onLongPress;
+  final VoidCallback? onSecondaryTap;
 
   @override
   State<ItemCard> createState() => _ItemCardState();
@@ -40,6 +42,7 @@ class _ItemCardState extends State<ItemCard> {
         child: GestureDetector(
           onTap: widget.onTap,
           onLongPress: widget.onLongPress,
+          onSecondaryTap: widget.onSecondaryTap,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: DecoratedBox(

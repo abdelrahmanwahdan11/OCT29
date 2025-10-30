@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../app.dart';
@@ -8,6 +9,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../state/app_state.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/item_card.dart';
+import '../../widgets/item_quick_actions.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +21,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late final TextEditingController _searchController;
   final ScrollController _scrollController = ScrollController();
+  late final FocusNode _rootFocusNode;
+  late final FocusNode _searchFocusNode;
   Timer? _debounce;
   AppState? _appState;
   bool _showBackToTop = false;
@@ -26,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _rootFocusNode = FocusNode(debugLabel: 'home-shortcuts');
+    _searchFocusNode = FocusNode();
     _searchController = TextEditingController()
       ..addListener(() {
         setState(() {});
@@ -46,6 +52,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _rootFocusNode.dispose();
+    _searchFocusNode.dispose();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -91,6 +99,104 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _focusSearchField() {
+    if (!_searchFocusNode.hasFocus) {
+      _searchFocusNode.requestFocus();
+    }
+  }
+
+  void _openFilters(AppState appState) {
+    final localization = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    var tempCategory = appState.selectedCategory;
+    var tempFilter = appState.selectedFilter;
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * .7,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(localization.translate('categories'), style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        RadioListTile<String>(
+                          value: 'all',
+                          groupValue: tempCategory,
+                          onChanged: (value) => setModalState(() => tempCategory = value ?? 'all'),
+                          title: const Text('All'),
+                        ),
+                        ...appState.categories.map(
+                          (category) => RadioListTile<String>(
+                            value: category.id,
+                            groupValue: tempCategory,
+                            onChanged: (value) => setModalState(() => tempCategory = value ?? tempCategory),
+                            title: Text(category.name),
+                          ),
+                        ),
+                        const Divider(),
+                        Text(localization.translate('filter'), style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        ...appState.filters.map(
+                          (filter) => RadioListTile<String>(
+                            value: filter.id,
+                            groupValue: tempFilter,
+                            onChanged: (value) => setModalState(() => tempFilter = value ?? tempFilter),
+                            title: Text(filter.label),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(sheetContext).pop();
+                                appState.clearFilters();
+                              },
+                              child: Text(localization.translate('clear_filters')),
+                            ),
+                            FilledButton(
+                              onPressed: () {
+                                Navigator.of(sheetContext).pop();
+                                if (tempCategory != appState.selectedCategory) {
+                                  appState.selectCategory(tempCategory);
+                                }
+                                if (tempFilter != appState.selectedFilter) {
+                                  appState.selectFilter(tempFilter);
+                                }
+                              },
+                              child: Text(localization.translate('apply')),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = AppScope.of(context);
@@ -98,7 +204,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final localization = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final recentItems = appState.getRecentlyViewedItems();
-    return Scaffold(
+    final shortcuts = <ShortcutActivator, VoidCallback>{
+      const SingleActivator(LogicalKeyboardKey.slash): _focusSearchField,
+      const SingleActivator(LogicalKeyboardKey.keyG): () => _toggleLayout(appState),
+      const SingleActivator(LogicalKeyboardKey.keyF): () => _openFilters(appState),
+      const SingleActivator(LogicalKeyboardKey.keyT): _scrollToTop,
+      const SingleActivator(LogicalKeyboardKey.escape): () => FocusScope.of(context).unfocus(),
+    };
+    return CallbackShortcuts(
+      bindings: shortcuts,
+      child: Focus(
+        focusNode: _rootFocusNode,
+        autofocus: true,
+        child: Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => appState.refreshItems(),
@@ -139,6 +257,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   IconButton(
+                    tooltip: localization.translate('filter'),
+                    onPressed: () => _openFilters(appState),
+                    icon: const Icon(Icons.filter_alt_outlined),
+                  ),
+                  IconButton(
                     tooltip: appState.feedLayout == FeedLayout.grid
                         ? localization.translate('list')
                         : localization.translate('grid'),
@@ -151,6 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     child: TextField(
+                      focusNode: _searchFocusNode,
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
@@ -358,6 +482,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   item: item,
                                   onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
                                   onFavorite: () => appState.toggleFavorite(item),
+                                  onLongPress: () => showItemQuickActions(context, item),
+                                  onSecondaryTap: () => showItemQuickActions(context, item),
                                 ),
                               );
                             },
@@ -405,6 +531,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 item: item,
                                 onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
                                 onFavorite: () => appState.toggleFavorite(item),
+                                onLongPress: () => showItemQuickActions(context, item),
+                                onSecondaryTap: () => showItemQuickActions(context, item),
                               ).animate().fadeIn(duration: 250.ms).slideY(begin: .1, curve: Curves.easeOut);
                             },
                             childCount: appState.items.length,
@@ -426,6 +554,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   item: item,
                                   onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
                                   onFavorite: () => appState.toggleFavorite(item),
+                                  onLongPress: () => showItemQuickActions(context, item),
+                                  onSecondaryTap: () => showItemQuickActions(context, item),
                                 ).animate().fadeIn(duration: 250.ms).slideY(begin: .1, curve: Curves.easeOut),
                               );
                             },
@@ -467,6 +597,7 @@ class _HomeScreenState extends State<HomeScreen> {
             label: Text(localization.translate('back_to_top')),
           ),
         ),
+      ),
       ),
     );
   }

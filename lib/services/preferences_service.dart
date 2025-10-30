@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/models/collection.dart';
+
 enum StoredThemeMode { system, light, dark }
 
 class PreferencesKeys {
@@ -16,6 +18,8 @@ class PreferencesKeys {
   static const savedSearches = 'prefs.savedSearches';
   static const filtersState = 'prefs.filtersState';
   static const sortState = 'prefs.sortState';
+  static const collections = 'prefs.collections';
+  static const compareSelection = 'prefs.compareSelection';
 }
 
 class PreferencesService {
@@ -148,5 +152,35 @@ class PreferencesService {
 
   Future<void> setSortState(Map<String, dynamic> state) async {
     await _preferences.setString(PreferencesKeys.sortState, jsonEncode(state));
+  }
+
+  List<Collection> getCollections() {
+    final raw = _preferences.getString(PreferencesKeys.collections);
+    if (raw == null || raw.isEmpty) return const <Collection>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map>()
+            .map((entry) => Collection.fromJson(entry.cast<String, dynamic>()))
+            .toList();
+      }
+    } catch (_) {
+      return const <Collection>[];
+    }
+    return const <Collection>[];
+  }
+
+  Future<void> setCollections(List<Collection> collections) async {
+    final encoded = jsonEncode(collections.map((collection) => collection.toJson()).toList());
+    await _preferences.setString(PreferencesKeys.collections, encoded);
+  }
+
+  List<String> getCompareSelection() {
+    return _preferences.getStringList(PreferencesKeys.compareSelection) ?? <String>[];
+  }
+
+  Future<void> setCompareSelection(List<String> ids) async {
+    await _preferences.setStringList(PreferencesKeys.compareSelection, ids);
   }
 }

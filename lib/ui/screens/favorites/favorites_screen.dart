@@ -7,6 +7,7 @@ import '../../../data/models/item.dart';
 import '../../../state/app_state.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/item_card.dart';
+import '../../widgets/item_quick_actions.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -160,6 +161,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         },
                         onFavorite: () => appState.toggleFavorite(item),
                         onLongPress: () => _enterSelection(item.id),
+                        onSecondaryTap: () {
+                          if (selectionMode) {
+                            _toggleSelection(item.id);
+                          } else {
+                            showItemQuickActions(context, item);
+                          }
+                        },
                       ),
                       if (selectionMode)
                         Positioned(

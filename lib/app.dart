@@ -9,6 +9,8 @@ import 'state/app_state.dart';
 import 'ui/screens/auth/login_screen.dart';
 import 'ui/screens/auth/register_screen.dart';
 import 'ui/screens/details/item_details_screen.dart';
+import 'ui/screens/collections/collections_screen.dart';
+import 'ui/screens/compare/compare_screen.dart';
 import 'ui/screens/home/home_shell.dart';
 import 'ui/screens/onboarding/onboarding_screen.dart';
 import 'ui/screens/splash/splash_screen.dart';
@@ -59,6 +61,10 @@ class AppRoot extends StatelessWidget {
                   return MaterialPageRoute(
                     builder: (_) => HomeShell(initialTab: HomeTabRoute.fromName(settings.name!)),
                   );
+                case AppRoutes.collections:
+                  return MaterialPageRoute(builder: (_) => const CollectionsScreen());
+                case AppRoutes.compare:
+                  return MaterialPageRoute(builder: (_) => const CompareScreen());
                 default:
                   if (settings.name != null && settings.name!.startsWith('${AppRoutes.itemDetails}/')) {
                     final id = settings.name!.split('/').last;
