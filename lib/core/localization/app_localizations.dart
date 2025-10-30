@@ -66,7 +66,20 @@ class AppLocalizations {
       'secure_body': 'سجل أو ادخل كضيف مع حفظ تفضيلاتك.',
       'explore_headline': 'ابحث واستكشف',
       'explore_body': 'مرشحات، بحث متطور، وتصفح لا نهائي.',
-      'guest_message': 'أنت في وضع الضيف. سجل للحصول على كل المزايا.'
+      'guest_message': 'أنت في وضع الضيف. سجل للحصول على كل المزايا.',
+      'sort': 'ترتيب',
+      'filter': 'فلترة',
+      'apply': 'تطبيق',
+      'reset': 'إعادة ضبط',
+      'grid': 'شبكة',
+      'list': 'قائمة',
+      'recently_viewed': 'شوهد مؤخراً',
+      'search_history': 'سجل البحث',
+      'clear_all': 'مسح الكل',
+      'price_low_high': 'السعر: من الأقل للأعلى',
+      'price_high_low': 'السعر: من الأعلى للأقل',
+      'rating_high_low': 'التقييم: من الأعلى للأقل',
+      'newest_first': 'الأحدث أولاً'
     },
     'en': {
       'app_name': 'Catalog',
@@ -124,7 +137,20 @@ class AppLocalizations {
       'secure_body': 'Register or continue as guest with preferences saved.',
       'explore_headline': 'Search and explore',
       'explore_body': 'Filters, smart search, and endless browsing.',
-      'guest_message': 'You are browsing as guest. Sign in for full benefits.'
+      'guest_message': 'You are browsing as guest. Sign in for full benefits.',
+      'sort': 'Sort',
+      'filter': 'Filter',
+      'apply': 'Apply',
+      'reset': 'Reset',
+      'grid': 'Grid',
+      'list': 'List',
+      'recently_viewed': 'Recently viewed',
+      'search_history': 'Search history',
+      'clear_all': 'Clear all',
+      'price_low_high': 'Price: Low to High',
+      'price_high_low': 'Price: High to Low',
+      'rating_high_low': 'Rating: High to Low',
+      'newest_first': 'Newest first'
     }
   };
 
