@@ -8,6 +8,9 @@ class PreferencesKeys {
   static const locale = 'prefs.locale';
   static const favorites = 'prefs.favorites';
   static const guestSession = 'prefs.guestSession';
+  static const searchHistory = 'prefs.searchHistory';
+  static const recentlyViewed = 'prefs.recentlyViewed';
+  static const feedLayout = 'prefs.feedLayout';
 }
 
 class PreferencesService {
@@ -72,5 +75,29 @@ class PreferencesService {
 
   Future<void> setGuestSession(bool value) async {
     await _preferences.setBool(PreferencesKeys.guestSession, value);
+  }
+
+  List<String> getSearchHistory() {
+    return _preferences.getStringList(PreferencesKeys.searchHistory) ?? <String>[];
+  }
+
+  Future<void> setSearchHistory(List<String> history) async {
+    await _preferences.setStringList(PreferencesKeys.searchHistory, history);
+  }
+
+  List<String> getRecentlyViewed() {
+    return _preferences.getStringList(PreferencesKeys.recentlyViewed) ?? <String>[];
+  }
+
+  Future<void> setRecentlyViewed(List<String> ids) async {
+    await _preferences.setStringList(PreferencesKeys.recentlyViewed, ids);
+  }
+
+  String getFeedLayout() {
+    return _preferences.getString(PreferencesKeys.feedLayout) ?? 'grid';
+  }
+
+  Future<void> setFeedLayout(String layout) async {
+    await _preferences.setString(PreferencesKeys.feedLayout, layout);
   }
 }

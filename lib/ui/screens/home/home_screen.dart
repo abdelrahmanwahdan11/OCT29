@@ -25,7 +25,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _searchController = TextEditingController();
+    _searchController = TextEditingController()
+      ..addListener(() {
+        setState(() {});
+      });
     _scrollController.addListener(_handleScroll);
   }
 
@@ -65,12 +68,23 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _onSearchHistoryTap(String term) {
+    _searchController.value = TextEditingValue(text: term, selection: TextSelection.collapsed(offset: term.length));
+    _onSearchChanged(term);
+  }
+
+  void _toggleLayout(AppState appState) {
+    final newLayout = appState.feedLayout == FeedLayout.grid ? FeedLayout.list : FeedLayout.grid;
+    appState.setFeedLayout(newLayout);
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = AppScope.of(context);
     _appState = appState;
     final localization = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final recentItems = appState.getRecentlyViewedItems();
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
@@ -83,6 +97,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 pinned: true,
                 floating: true,
                 title: Text(localization.translate('app_name')),
+                actions: [
+                  IconButton(
+                    tooltip: appState.feedLayout == FeedLayout.grid
+                        ? localization.translate('list')
+                        : localization.translate('grid'),
+                    onPressed: () => _toggleLayout(appState),
+                    icon: Icon(appState.feedLayout == FeedLayout.grid ? Icons.view_agenda_rounded : Icons.grid_view_rounded),
+                  ),
+                ],
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(64),
                   child: Padding(
@@ -94,11 +117,55 @@ class _HomeScreenState extends State<HomeScreen> {
                         hintText: localization.translate('search_hint'),
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
+                        suffixIcon: _searchController.text.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: localization.translate('clear_history'),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('');
+                                },
+                                icon: const Icon(Icons.clear),
+                              ),
                       ),
                     ),
                   ),
                 ),
               ),
+              if (appState.searchHistory.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(localization.translate('search_history'), style: theme.textTheme.titleMedium),
+                            TextButton(
+                              onPressed: () => appState.clearSearchHistory(),
+                              child: Text(localization.translate('clear_history')),
+                            )
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: appState.searchHistory
+                              .map(
+                                (term) => ActionChip(
+                                  label: Text(term),
+                                  onPressed: () => _onSearchHistoryTap(term),
+                                ),
+                              )
+                              .toList(),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
               SliverToBoxAdapter(
                 child: SizedBox(
                   height: 48,
@@ -145,6 +212,38 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+              if (recentItems.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(localization.translate('recently_viewed'), style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 250,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemBuilder: (context, index) {
+                              final item = recentItems[index];
+                              return SizedBox(
+                                width: 220,
+                                child: ItemCard(
+                                  item: item,
+                                  onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
+                                  onFavorite: () => appState.toggleFavorite(item),
+                                ),
+                              );
+                            },
+                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            itemCount: recentItems.length,
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
               if (appState.isLoading)
                 const SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -172,25 +271,42 @@ class _HomeScreenState extends State<HomeScreen> {
               else
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  sliver: SliverGrid(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final item = appState.items[index];
-                        return ItemCard(
-                          item: item,
-                          onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
-                          onFavorite: () => appState.toggleFavorite(item),
-                        ).animate().fadeIn(duration: 250.ms).slideY(begin: .1, curve: Curves.easeOut);
-                      },
-                      childCount: appState.items.length,
-                    ),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: .72,
-                    ),
-                  ),
+                  sliver: appState.feedLayout == FeedLayout.grid
+                      ? SliverGrid(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final item = appState.items[index];
+                              return ItemCard(
+                                item: item,
+                                onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
+                                onFavorite: () => appState.toggleFavorite(item),
+                              ).animate().fadeIn(duration: 250.ms).slideY(begin: .1, curve: Curves.easeOut);
+                            },
+                            childCount: appState.items.length,
+                          ),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: .72,
+                          ),
+                        )
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final item = appState.items[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: ItemCard(
+                                  item: item,
+                                  onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
+                                  onFavorite: () => appState.toggleFavorite(item),
+                                ).animate().fadeIn(duration: 250.ms).slideY(begin: .1, curve: Curves.easeOut),
+                              );
+                            },
+                            childCount: appState.items.length,
+                          ),
+                        ),
                 ),
               SliverToBoxAdapter(
                 child: AnimatedSwitcher(

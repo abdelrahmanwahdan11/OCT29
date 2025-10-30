@@ -3,23 +3,25 @@ class Item {
     required this.id,
     required this.title,
     required this.price,
-    required this.imageUrl,
+    required List<String> imageUrls,
     required this.rating,
     required this.tags,
     required this.category,
     required this.description,
     this.isFavorite = false,
-  });
+  }) : imageUrls = imageUrls.isNotEmpty ? List.unmodifiable(imageUrls) : const [];
 
   final String id;
   final String title;
   final double price;
-  final String imageUrl;
+  final List<String> imageUrls;
   final double rating;
   final List<String> tags;
   final String category;
   final String description;
   final bool isFavorite;
+
+  String get imageUrl => imageUrls.isNotEmpty ? imageUrls.first : '';
 
   Item copyWith({
     bool? isFavorite,
@@ -28,7 +30,7 @@ class Item {
       id: id,
       title: title,
       price: price,
-      imageUrl: imageUrl,
+      imageUrls: imageUrls,
       rating: rating,
       tags: tags,
       category: category,

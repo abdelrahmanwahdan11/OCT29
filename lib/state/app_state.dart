@@ -10,6 +10,8 @@ import '../data/models/user.dart';
 import '../data/repositories/catalog_repository.dart';
 import '../services/preferences_service.dart';
 
+enum FeedLayout { grid, list }
+
 class AppState extends ChangeNotifier {
   AppState(this.preferences)
       : repository = CatalogRepository(),
@@ -33,6 +35,10 @@ class AppState extends ChangeNotifier {
   bool guestSession = false;
   User? user;
   Set<String> favorites = {};
+  FeedLayout feedLayout = FeedLayout.grid;
+
+  List<String> _searchHistory = [];
+  List<String> _recentlyViewed = [];
 
   static const int _pageSize = 20;
   int _page = 0;
@@ -51,6 +57,7 @@ class AppState extends ChangeNotifier {
   String get selectedCategory => _selectedCategory;
   String get selectedFilter => _selectedFilter;
   String get searchQuery => _searchQuery;
+  List<String> get searchHistory => List.unmodifiable(_searchHistory);
 
   Future<void> initialize() async {
     hasSeenOnboarding = preferences.getHasSeenOnboarding();
@@ -64,6 +71,10 @@ class AppState extends ChangeNotifier {
       StoredThemeMode.light => ThemeMode.light,
       StoredThemeMode.dark => ThemeMode.dark,
     };
+    final storedLayout = preferences.getFeedLayout();
+    feedLayout = storedLayout == 'list' ? FeedLayout.list : FeedLayout.grid;
+    _searchHistory = preferences.getSearchHistory();
+    _recentlyViewed = preferences.getRecentlyViewed();
     if (guestSession) {
       user = User(id: 'guest', name: 'Guest');
     }
@@ -116,6 +127,9 @@ class AppState extends ChangeNotifier {
   Future<void> setSearchQuery(String query) async {
     _searchQuery = query;
     await loadInitialItems();
+    if (query.isNotEmpty) {
+      await _addSearchHistory(query);
+    }
   }
 
   Future<void> selectCategory(String category) async {
@@ -143,6 +157,14 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> removeFavorites(Set<String> ids) async {
+    if (ids.isEmpty) return;
+    favorites.removeAll(ids);
+    await preferences.setFavorites(favorites);
+    _items = _items.map(_applyFavorite).toList();
+    notifyListeners();
+  }
+
   List<Item> getFavoriteItems() {
     final favoriteIds = favorites;
     final favoriteItems = <Item>[];
@@ -161,6 +183,60 @@ class AppState extends ChangeNotifier {
   }
 
   bool get isAuthenticated => user != null;
+
+  Future<void> setFeedLayout(FeedLayout layout) async {
+    if (feedLayout == layout) return;
+    feedLayout = layout;
+    await preferences.setFeedLayout(layout == FeedLayout.grid ? 'grid' : 'list');
+    notifyListeners();
+  }
+
+  Future<void> clearSearchHistory() async {
+    _searchHistory = [];
+    await preferences.setSearchHistory(_searchHistory);
+    notifyListeners();
+  }
+
+  Future<void> _addSearchHistory(String query) async {
+    final sanitized = query.trim();
+    if (sanitized.isEmpty) return;
+    final normalized = sanitized.toLowerCase();
+    _searchHistory.removeWhere((term) => term.toLowerCase() == normalized);
+    _searchHistory.insert(0, sanitized);
+    if (_searchHistory.length > 10) {
+      _searchHistory = _searchHistory.sublist(0, 10);
+    }
+    await preferences.setSearchHistory(_searchHistory);
+    notifyListeners();
+  }
+
+  void recordRecentlyViewed(String id) {
+    if (id.isEmpty) return;
+    _recentlyViewed.remove(id);
+    _recentlyViewed.insert(0, id);
+    if (_recentlyViewed.length > 10) {
+      _recentlyViewed = _recentlyViewed.sublist(0, 10);
+    }
+    preferences.setRecentlyViewed(_recentlyViewed);
+    notifyListeners();
+  }
+
+  List<Item> getRecentlyViewedItems() {
+    return _recentlyViewed
+        .map((id) => findItemById(id))
+        .whereType<Item>()
+        .map(_applyFavorite)
+        .toList();
+  }
+
+  List<Item> getRelatedItems(String id, {int limit = 6}) {
+    final base = findItemById(id);
+    if (base == null) return [];
+    return repository
+        .relatedItems(category: base.category, excludeId: id, limit: limit)
+        .map(_applyFavorite)
+        .toList();
+  }
 
   Future<void> completeOnboarding() async {
     hasSeenOnboarding = true;

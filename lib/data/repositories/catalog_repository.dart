@@ -54,4 +54,11 @@ class CatalogRepository {
       return null;
     }
   }
+
+  List<Item> relatedItems({required String category, required String excludeId, int limit = 6}) {
+    return _allItems
+        .where((item) => item.category.toLowerCase() == category.toLowerCase() && item.id != excludeId)
+        .take(limit)
+        .toList();
+  }
 }

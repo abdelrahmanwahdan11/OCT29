@@ -112,7 +112,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final localization = AppLocalizations.of(context);
     final appState = AppScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(localization.translate('explore'))),
+      appBar: AppBar(
+        title: Text(localization.translate('explore')),
+        actions: [
+          IconButton(
+            tooltip: appState.feedLayout == FeedLayout.grid
+                ? localization.translate('list')
+                : localization.translate('grid'),
+            onPressed: () => appState
+                .setFeedLayout(appState.feedLayout == FeedLayout.grid ? FeedLayout.list : FeedLayout.grid),
+            icon: Icon(appState.feedLayout == FeedLayout.grid ? Icons.view_agenda_rounded : Icons.grid_view_rounded),
+          )
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _onRefresh,
         child: ListView(
@@ -171,22 +183,47 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
               )
             else
-              ..._items
-                  .map(
-                    (item) {
-                      final isFavorite = appState.favorites.contains(item.id);
-                      final displayItem = item.copyWith(isFavorite: isFavorite);
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: ItemCard(
-                          item: displayItem,
-                          onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
-                          onFavorite: () => _toggleFavorite(item),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: appState.feedLayout == FeedLayout.grid
+                    ? GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: .72,
                         ),
-                      );
-                    },
-                  )
-                  .toList(),
+                        itemCount: _items.length,
+                        itemBuilder: (context, index) {
+                          final item = _items[index];
+                          final isFavorite = appState.favorites.contains(item.id);
+                          final displayItem = item.copyWith(isFavorite: isFavorite);
+                          return ItemCard(
+                            item: displayItem,
+                            onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
+                            onFavorite: () => _toggleFavorite(item),
+                          );
+                        },
+                      )
+                    : Column(
+                        children: _items
+                            .map((item) {
+                              final isFavorite = appState.favorites.contains(item.id);
+                              final displayItem = item.copyWith(isFavorite: isFavorite);
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: ItemCard(
+                                  item: displayItem,
+                                  onTap: () => Navigator.of(context).pushNamed('${AppRoutes.itemDetails}/${item.id}'),
+                                  onFavorite: () => _toggleFavorite(item),
+                                ),
+                              );
+                            })
+                            .toList(),
+                      ),
+              ),
             if (_isLoadingMore)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),

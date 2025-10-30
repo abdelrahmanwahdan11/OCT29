@@ -30,11 +30,12 @@ class MockDataFactory {
       final ratingOptions = [3.5, 4.0, 4.5, 5.0];
       final rating = ratingOptions[index % ratingOptions.length];
       final filterTag = _filters[index % _filters.length];
+      final imageBase = 'https://picsum.photos/seed/$id/600/600';
       return Item(
         id: id,
         title: 'Sample Item ${index + 1}',
         price: double.parse(price.toStringAsFixed(2)),
-        imageUrl: 'https://picsum.photos/seed/$id/600/600',
+        imageUrls: List.generate(3, (i) => '$imageBase?variant=$i'),
         rating: rating,
         tags: [category, filterTag],
         category: category,

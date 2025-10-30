@@ -3,20 +3,49 @@ import 'package:iconly/iconly.dart';
 
 import '../../../app.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/utils/routes.dart';
 import '../../../state/app_state.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/item_card.dart';
 
-class ItemDetailsScreen extends StatelessWidget {
+class ItemDetailsScreen extends StatefulWidget {
   const ItemDetailsScreen({super.key, required this.itemId});
 
   final String itemId;
+
+  @override
+  State<ItemDetailsScreen> createState() => _ItemDetailsScreenState();
+}
+
+class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = AppScope.of(context);
+      final item = appState.findItemById(widget.itemId);
+      if (item != null) {
+        appState.recordRecentlyViewed(item.id);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final appState = AppScope.of(context);
     final localization = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final item = appState.findItemById(itemId);
+    final item = appState.findItemById(widget.itemId);
 
     if (item == null) {
       return Scaffold(
@@ -33,11 +62,18 @@ class ItemDetailsScreen extends StatelessWidget {
       );
     }
 
+    final images = item.imageUrls.isNotEmpty ? item.imageUrls : [item.imageUrl];
+    final relatedItems = appState.getRelatedItems(item.id);
+    final recentlyViewed = appState
+        .getRecentlyViewedItems()
+        .where((recent) => recent.id != item.id)
+        .toList();
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 320,
+            expandedHeight: 360,
             pinned: true,
             actions: [
               IconButton(
@@ -47,16 +83,56 @@ class ItemDetailsScreen extends StatelessWidget {
             ],
             flexibleSpace: FlexibleSpaceBar(
               title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-              background: Hero(
-                tag: 'item-${item.id}',
-                child: Image.network(
-                  item.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: theme.colorScheme.surfaceVariant,
-                    child: Icon(Icons.broken_image, color: theme.colorScheme.outline),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (index) => setState(() => _currentPage = index),
+                    itemCount: images.length,
+                    itemBuilder: (context, index) {
+                      final image = Image.network(
+                        images[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: theme.colorScheme.surfaceVariant,
+                          child: Icon(Icons.broken_image, color: theme.colorScheme.outline),
+                        ),
+                      );
+                      if (index == 0) {
+                        return Hero(
+                          tag: 'item-${item.id}',
+                          child: image,
+                        );
+                      }
+                      return image;
+                    },
                   ),
-                ),
+                  if (images.length > 1)
+                    Positioned(
+                      bottom: 16,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          images.length,
+                          (index) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: _currentPage == index ? 12 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: _currentPage == index
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.surfaceVariant.withOpacity(.8),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -116,7 +192,64 @@ class ItemDetailsScreen extends StatelessWidget {
                 ],
               ),
             ),
-          )
+          ),
+          if (recentlyViewed.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(localization.translate('recently_viewed'), style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 240,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemBuilder: (context, index) {
+                          final recent = recentlyViewed[index];
+                          return SizedBox(
+                            width: 200,
+                            child: ItemCard(
+                              item: recent,
+                              onTap: () => Navigator.of(context)
+                                  .pushReplacementNamed('${AppRoutes.itemDetails}/${recent.id}'),
+                              onFavorite: () => appState.toggleFavorite(recent),
+                            ),
+                          );
+                        },
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemCount: recentlyViewed.length,
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          if (relatedItems.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(localization.translate('related_items'), style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    ...relatedItems.map(
+                      (related) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: ItemCard(
+                          item: related,
+                          onTap: () => Navigator.of(context)
+                              .pushReplacementNamed('${AppRoutes.itemDetails}/${related.id}'),
+                          onFavorite: () => appState.toggleFavorite(related),
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

@@ -9,17 +9,20 @@ class ItemCard extends StatelessWidget {
     required this.item,
     required this.onTap,
     required this.onFavorite,
+    this.onLongPress,
   });
 
   final Item item;
   final VoidCallback onTap;
   final VoidCallback onFavorite;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(12),
       child: Ink(
         decoration: BoxDecoration(
