@@ -1,0 +1,27 @@
+name: catalog_app
+description: A bilingual marketplace-style catalog app with onboarding, authentication, and persistent settings.
+version: 1.0.0+1
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependency_overrides: {}
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_animate: ^4.5.0
+  google_fonts: ^6.1.0
+  shared_preferences: ^2.2.2
+  iconly: ^1.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
