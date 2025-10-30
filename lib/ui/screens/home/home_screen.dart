@@ -21,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
   AppState? _appState;
+  bool _showBackToTop = false;
 
   @override
   void initState() {
@@ -57,6 +58,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _scrollController.position.maxScrollExtent * .8) {
       appState.loadMoreItems();
     }
+    final shouldShow = _scrollController.position.pixels > 1200;
+    if (shouldShow != _showBackToTop) {
+      setState(() => _showBackToTop = shouldShow);
+    }
   }
 
   void _onSearchChanged(String value) {
@@ -76,6 +81,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void _toggleLayout(AppState appState) {
     final newLayout = appState.feedLayout == FeedLayout.grid ? FeedLayout.list : FeedLayout.grid;
     appState.setFeedLayout(newLayout);
+  }
+
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -98,6 +111,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 floating: true,
                 title: Text(localization.translate('app_name')),
                 actions: [
+                  PopupMenuButton<String>(
+                    tooltip: localization.translate('sort'),
+                    onSelected: (value) => appState.setSortOrder(value),
+                    initialValue: appState.sortOrder,
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'newest_first',
+                        child: Text(localization.translate('newest_first')),
+                      ),
+                      PopupMenuItem(
+                        value: 'price_low_high',
+                        child: Text(localization.translate('price_low_high')),
+                      ),
+                      PopupMenuItem(
+                        value: 'price_high_low',
+                        child: Text(localization.translate('price_high_low')),
+                      ),
+                      PopupMenuItem(
+                        value: 'rating_high_low',
+                        child: Text(localization.translate('rating_high_low')),
+                      ),
+                    ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Icon(Icons.sort_rounded, color: theme.colorScheme.onSurface),
+                    ),
+                  ),
                   IconButton(
                     tooltip: appState.feedLayout == FeedLayout.grid
                         ? localization.translate('list')
@@ -117,9 +157,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         hintText: localization.translate('search_hint'),
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
-                        suffixIcon: _searchController.text.isEmpty
-                            ? null
-                            : IconButton(
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_searchController.text.isNotEmpty)
+                              IconButton(
+                                tooltip: localization.translate('saved_searches'),
+                                onPressed: () => appState.saveSearchQuery(_searchController.text),
+                                icon: const Icon(Icons.bookmark_add_outlined),
+                              ),
+                            if (_searchController.text.isNotEmpty)
+                              IconButton(
                                 tooltip: localization.translate('clear_history'),
                                 onPressed: () {
                                   _searchController.clear();
@@ -127,6 +175,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 },
                                 icon: const Icon(Icons.clear),
                               ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -209,6 +259,81 @@ class _HomeScreenState extends State<HomeScreen> {
                         onSelected: (_) => appState.selectFilter(filter.id),
                       );
                     },
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: appState.selectedCategory == 'all' && appState.selectedFilter == 'All'
+                          ? null
+                          : () => appState.clearFilters(),
+                      icon: const Icon(Icons.filter_alt_off_outlined),
+                      label: Text(localization.translate('clear_filters')),
+                    ),
+                  ),
+                ),
+              ),
+              if (appState.savedSearches.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(localization.translate('saved_searches'), style: theme.textTheme.titleMedium),
+                            TextButton(
+                              onPressed: () => appState.clearSavedSearches(),
+                              child: Text(localization.translate('clear_all')),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: appState.savedSearches
+                              .map(
+                                (term) => InputChip(
+                                  label: Text(term),
+                                  onPressed: () => _onSearchHistoryTap(term),
+                                  onDeleted: () => appState.removeSavedSearch(term),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(localization.translate('quick_actions'), style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: appState.trendingSearches
+                            .map(
+                              (term) => ActionChip(
+                                avatar: const Icon(Icons.trending_up, size: 16),
+                                label: Text(term),
+                                onPressed: () => _onSearchHistoryTap(term),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -327,6 +452,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+      floatingActionButton: AnimatedSlide(
+        offset: _showBackToTop ? Offset.zero : const Offset(1.5, 0),
+        duration: const Duration(milliseconds: 250),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 250),
+          opacity: _showBackToTop ? 1 : 0,
+          child: FloatingActionButton.extended(
+            onPressed: _scrollToTop,
+            icon: const Icon(Icons.arrow_upward_rounded),
+            label: Text(localization.translate('back_to_top')),
           ),
         ),
       ),

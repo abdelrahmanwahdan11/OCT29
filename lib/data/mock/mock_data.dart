@@ -31,6 +31,7 @@ class MockDataFactory {
       final rating = ratingOptions[index % ratingOptions.length];
       final filterTag = _filters[index % _filters.length];
       final imageBase = 'https://picsum.photos/seed/$id/600/600';
+      final createdAt = DateTime.now().subtract(Duration(days: index)).millisecondsSinceEpoch;
       return Item(
         id: id,
         title: 'Sample Item ${index + 1}',
@@ -41,6 +42,13 @@ class MockDataFactory {
         category: category,
         description:
             'This is a beautifully crafted description for Sample Item ${index + 1}. It highlights features, materials, and use cases with clarity.',
+        brand: 'Brand ${index % 8 + 1}',
+        specs: {
+          'Material': 'Premium blend',
+          'Weight': '${1.2 + random.nextDouble()}kg',
+          'Warranty': '${1 + index % 3} year',
+        },
+        createdAt: createdAt,
       );
     });
   }

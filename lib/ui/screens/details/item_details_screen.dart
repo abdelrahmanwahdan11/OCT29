@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:iconly/iconly.dart';
 
 import '../../../app.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/utils/routes.dart';
+import '../../../data/models/item.dart';
 import '../../../state/app_state.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/item_card.dart';
@@ -20,6 +22,12 @@ class ItemDetailsScreen extends StatefulWidget {
 class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
   late final PageController _pageController;
   int _currentPage = 0;
+  void _copyToClipboard(BuildContext context, String value, String message) {
+    Clipboard.setData(ClipboardData(text: value));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 
   @override
   void initState() {
@@ -68,6 +76,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
         .getRecentlyViewedItems()
         .where((recent) => recent.id != item.id)
         .toList();
+    final summary = _buildSummary(item);
 
     return Scaffold(
       body: CustomScrollView(
@@ -76,6 +85,24 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
             expandedHeight: 360,
             pinned: true,
             actions: [
+              IconButton(
+                tooltip: localization.translate('copy_link'),
+                icon: const Icon(Icons.link_outlined),
+                onPressed: () => _copyToClipboard(
+                  context,
+                  'https://catalog.app/items/${item.id}',
+                  localization.translate('copy_link'),
+                ),
+              ),
+              IconButton(
+                tooltip: localization.translate('share_summary'),
+                icon: const Icon(Icons.copy_all_outlined),
+                onPressed: () => _copyToClipboard(
+                  context,
+                  summary,
+                  localization.translate('share_summary'),
+                ),
+              ),
               IconButton(
                 icon: Icon(item.isFavorite ? IconlyBold.heart : IconlyLight.heart),
                 onPressed: () => appState.toggleFavorite(item),
@@ -183,6 +210,16 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                     label: Text(localization.translate('add_to_cart')),
                   ),
                   const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _copyToClipboard(
+                      context,
+                      summary,
+                      localization.translate('share_summary'),
+                    ),
+                    icon: const Icon(Icons.copy_outlined),
+                    label: Text(localization.translate('share_summary')),
+                  ),
+                  const SizedBox(height: 12),
                   OutlinedButton(
                     onPressed: () => appState.toggleFavorite(item),
                     child: Text(item.isFavorite
@@ -254,4 +291,19 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
       ),
     );
   }
+}
+
+String _buildSummary(Item item) {
+  final buffer = StringBuffer()
+    ..writeln(item.title)
+    ..writeln('Price: USD ${item.price.toStringAsFixed(2)}')
+    ..writeln('Brand: ${item.brand}')
+    ..writeln('Rating: ${item.rating}');
+  if (item.specs.isNotEmpty) {
+    buffer.writeln('Specs:');
+    item.specs.forEach((key, value) {
+      buffer.writeln('- $key: $value');
+    });
+  }
+  return buffer.toString();
 }

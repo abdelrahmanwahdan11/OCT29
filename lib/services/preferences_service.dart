@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum StoredThemeMode { system, light, dark }
@@ -11,6 +13,9 @@ class PreferencesKeys {
   static const searchHistory = 'prefs.searchHistory';
   static const recentlyViewed = 'prefs.recentlyViewed';
   static const feedLayout = 'prefs.feedLayout';
+  static const savedSearches = 'prefs.savedSearches';
+  static const filtersState = 'prefs.filtersState';
+  static const sortState = 'prefs.sortState';
 }
 
 class PreferencesService {
@@ -99,5 +104,49 @@ class PreferencesService {
 
   Future<void> setFeedLayout(String layout) async {
     await _preferences.setString(PreferencesKeys.feedLayout, layout);
+  }
+
+  List<String> getSavedSearches() {
+    return _preferences.getStringList(PreferencesKeys.savedSearches) ?? <String>[];
+  }
+
+  Future<void> setSavedSearches(List<String> searches) async {
+    await _preferences.setStringList(PreferencesKeys.savedSearches, searches);
+  }
+
+  Map<String, dynamic> getFiltersState() {
+    final raw = _preferences.getString(PreferencesKeys.filtersState);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (_) {
+      return {};
+    }
+    return {};
+  }
+
+  Future<void> setFiltersState(Map<String, dynamic> state) async {
+    await _preferences.setString(PreferencesKeys.filtersState, jsonEncode(state));
+  }
+
+  Map<String, dynamic> getSortState() {
+    final raw = _preferences.getString(PreferencesKeys.sortState);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (_) {
+      return {};
+    }
+    return {};
+  }
+
+  Future<void> setSortState(Map<String, dynamic> state) async {
+    await _preferences.setString(PreferencesKeys.sortState, jsonEncode(state));
   }
 }

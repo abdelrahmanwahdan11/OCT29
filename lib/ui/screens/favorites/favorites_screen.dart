@@ -55,6 +55,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   Future<void> _confirmBulkRemove(AppState appState, AppLocalizations localization) async {
     if (_selected.isEmpty) return;
+    final favorites = appState.getFavoriteItems();
+    final removedItems = favorites.where((item) => _selected.contains(item.id)).toList();
     final shouldRemove = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -75,6 +77,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     if (shouldRemove == true) {
       await appState.removeFavorites(_selected);
       _clearSelection();
+      if (removedItems.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(localization.translate('bulk_remove')),
+            action: SnackBarAction(
+              label: localization.translate('undo'),
+              onPressed: () => appState.restoreFavorites(removedItems.map((item) => item.id)),
+            ),
+          ),
+        );
+      }
     }
   }
 

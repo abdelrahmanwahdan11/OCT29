@@ -39,6 +39,8 @@ class AppState extends ChangeNotifier {
 
   List<String> _searchHistory = [];
   List<String> _recentlyViewed = [];
+  List<String> _savedSearches = [];
+  String _sortOrder = 'newest_first';
 
   static const int _pageSize = 20;
   int _page = 0;
@@ -58,6 +60,10 @@ class AppState extends ChangeNotifier {
   String get selectedFilter => _selectedFilter;
   String get searchQuery => _searchQuery;
   List<String> get searchHistory => List.unmodifiable(_searchHistory);
+  List<String> get savedSearches => List.unmodifiable(_savedSearches);
+  String get sortOrder => _sortOrder;
+
+  List<String> get trendingSearches => const ['Phone', 'Shoes', 'Watch', 'Headphones'];
 
   Future<void> initialize() async {
     hasSeenOnboarding = preferences.getHasSeenOnboarding();
@@ -75,6 +81,12 @@ class AppState extends ChangeNotifier {
     feedLayout = storedLayout == 'list' ? FeedLayout.list : FeedLayout.grid;
     _searchHistory = preferences.getSearchHistory();
     _recentlyViewed = preferences.getRecentlyViewed();
+    _savedSearches = preferences.getSavedSearches();
+    final filtersState = preferences.getFiltersState();
+    final sortState = preferences.getSortState();
+    _selectedCategory = (filtersState['category'] as String?) ?? 'all';
+    _selectedFilter = (filtersState['filter'] as String?) ?? 'All';
+    _sortOrder = (sortState['order'] as String?) ?? 'newest_first';
     if (guestSession) {
       user = User(id: 'guest', name: 'Guest');
     }
@@ -92,6 +104,7 @@ class AppState extends ChangeNotifier {
       category: _selectedCategory,
       filter: _selectedFilter,
       query: _searchQuery,
+      sort: _sortOrder,
     );
     _items = data.map(_applyFavorite).toList();
     _isLoading = false;
@@ -114,6 +127,7 @@ class AppState extends ChangeNotifier {
       category: _selectedCategory,
       filter: _selectedFilter,
       query: _searchQuery,
+      sort: _sortOrder,
     );
     if (data.isEmpty) {
       _hasMore = false;
@@ -134,11 +148,27 @@ class AppState extends ChangeNotifier {
 
   Future<void> selectCategory(String category) async {
     _selectedCategory = category;
+    await _persistFilters();
     await loadInitialItems();
   }
 
   Future<void> selectFilter(String filter) async {
     _selectedFilter = filter;
+    await _persistFilters();
+    await loadInitialItems();
+  }
+
+  Future<void> setSortOrder(String sort) async {
+    if (_sortOrder == sort) return;
+    _sortOrder = sort;
+    await preferences.setSortState({'order': sort});
+    await loadInitialItems();
+  }
+
+  Future<void> clearFilters() async {
+    _selectedCategory = 'all';
+    _selectedFilter = 'All';
+    await _persistFilters();
     await loadInitialItems();
   }
 
@@ -160,6 +190,13 @@ class AppState extends ChangeNotifier {
   Future<void> removeFavorites(Set<String> ids) async {
     if (ids.isEmpty) return;
     favorites.removeAll(ids);
+    await preferences.setFavorites(favorites);
+    _items = _items.map(_applyFavorite).toList();
+    notifyListeners();
+  }
+
+  Future<void> restoreFavorites(Iterable<String> ids) async {
+    favorites.addAll(ids);
     await preferences.setFavorites(favorites);
     _items = _items.map(_applyFavorite).toList();
     notifyListeners();
@@ -194,6 +231,30 @@ class AppState extends ChangeNotifier {
   Future<void> clearSearchHistory() async {
     _searchHistory = [];
     await preferences.setSearchHistory(_searchHistory);
+    notifyListeners();
+  }
+
+  Future<void> saveSearchQuery(String query) async {
+    final sanitized = query.trim();
+    if (sanitized.isEmpty) return;
+    _savedSearches.removeWhere((term) => term.toLowerCase() == sanitized.toLowerCase());
+    _savedSearches.insert(0, sanitized);
+    if (_savedSearches.length > 10) {
+      _savedSearches = _savedSearches.sublist(0, 10);
+    }
+    await preferences.setSavedSearches(_savedSearches);
+    notifyListeners();
+  }
+
+  Future<void> removeSavedSearch(String query) async {
+    _savedSearches.removeWhere((term) => term.toLowerCase() == query.toLowerCase());
+    await preferences.setSavedSearches(_savedSearches);
+    notifyListeners();
+  }
+
+  Future<void> clearSavedSearches() async {
+    _savedSearches = [];
+    await preferences.setSavedSearches(_savedSearches);
     notifyListeners();
   }
 
@@ -312,6 +373,13 @@ class AppState extends ChangeNotifier {
     } catch (_) {
       return repository.findById(id)?.copyWith(isFavorite: favorites.contains(id));
     }
+  }
+
+  Future<void> _persistFilters() {
+    return preferences.setFiltersState({
+      'category': _selectedCategory,
+      'filter': _selectedFilter,
+    });
   }
 }
 
