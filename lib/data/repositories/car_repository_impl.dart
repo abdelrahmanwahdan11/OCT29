@@ -25,6 +25,9 @@ class CarRepositoryImpl implements CarRepository {
   Future<List<Car>> loadCachedCars() => _localDataSource.loadCachedCars();
 
   @override
+  Future<List<Car>> loadSeedCars() => _localDataSource.loadSeedCars();
+
+  @override
   Future<List<String>> loadFavorites() => _localDataSource.loadFavoriteIds();
 
   @override

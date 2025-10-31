@@ -6,6 +6,7 @@ import '../../application/controllers/cars_controller.dart';
 import '../../application/controllers/my_car_controller.dart';
 import '../../application/controllers/recent_views_controller.dart';
 import '../../application/controllers/saved_search_controller.dart';
+import '../../application/controllers/review_controller.dart';
 import '../../application/controllers/settings_controller.dart';
 import '../../application/controllers/tutorial_controller.dart';
 import '../screens/auth/forgot_screen.dart';
@@ -21,6 +22,7 @@ import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/tutorial/tutorial_screen.dart';
 import '../screens/roadmap/next_phase_screen.dart';
+import '../screens/review/launch_review_screen.dart';
 
 class AppRouter {
   AppRouter({
@@ -32,6 +34,7 @@ class AppRouter {
     required this.settingsController,
     required this.savedSearchController,
     required this.recentViewsController,
+    required this.reviewController,
   });
 
   final AppController appController;
@@ -42,6 +45,7 @@ class AppRouter {
   final SettingsController settingsController;
   final SavedSearchController savedSearchController;
   final RecentViewsController recentViewsController;
+  final ReviewController reviewController;
 
   Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -109,6 +113,7 @@ class AppRouter {
             appController: appController,
             settingsController: settingsController,
             savedSearchController: savedSearchController,
+            reviewController: reviewController,
           ),
           settings: settings,
         );
@@ -120,6 +125,11 @@ class AppRouter {
       case '/tutorial':
         return MaterialPageRoute(
           builder: (_) => TutorialScreen(controller: tutorialController),
+          settings: settings,
+        );
+      case '/launch_review':
+        return MaterialPageRoute(
+          builder: (_) => LaunchReviewScreen(reviewController: reviewController),
           settings: settings,
         );
       default:

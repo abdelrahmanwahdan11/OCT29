@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../application/controllers/app_controller.dart';
 import '../../../application/controllers/saved_search_controller.dart';
 import '../../../application/controllers/settings_controller.dart';
+import '../../../application/controllers/review_controller.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/saved_search.dart';
@@ -13,11 +14,13 @@ class SettingsScreen extends StatelessWidget {
     required this.appController,
     required this.settingsController,
     required this.savedSearchController,
+    required this.reviewController,
   });
 
   final AppController appController;
   final SettingsController settingsController;
   final SavedSearchController savedSearchController;
+  final ReviewController reviewController;
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +109,23 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             title: Text(l10n.t('show_tutorial')),
             onTap: () => Navigator.pushNamed(context, '/tutorial'),
+          ),
+          AnimatedBuilder(
+            animation: reviewController,
+            builder: (context, _) {
+              final pending = reviewController.observations
+                  .where((item) => item.status != ReviewStatus.pass)
+                  .length;
+              final subtitle = pending == 0
+                  ? l10n.t('review_tile_ready')
+                  : l10n.tr('review_tile_pending', {'count': '$pending'});
+              return ListTile(
+                title: Text(l10n.t('launch_review')),
+                subtitle: Text(subtitle),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.pushNamed(context, '/launch_review'),
+              );
+            },
           ),
           ListTile(
             title: Text(l10n.t('next_phase_title')),

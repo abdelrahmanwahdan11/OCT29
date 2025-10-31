@@ -8,6 +8,7 @@ import 'application/controllers/cars_controller.dart';
 import 'application/controllers/my_car_controller.dart';
 import 'application/controllers/recent_views_controller.dart';
 import 'application/controllers/saved_search_controller.dart';
+import 'application/controllers/review_controller.dart';
 import 'application/controllers/settings_controller.dart';
 import 'application/controllers/tutorial_controller.dart';
 import 'core/localization/app_localizations.dart';
@@ -33,6 +34,7 @@ class _AutoDeckAppState extends State<AutoDeckApp> {
   late final SettingsController _settingsController;
   late final SavedSearchController _savedSearchController;
   late final RecentViewsController _recentViewsController;
+  late final ReviewController _reviewController;
   late final AppRouter _router;
   late String _initialRoute;
 
@@ -57,6 +59,11 @@ class _AutoDeckAppState extends State<AutoDeckApp> {
     _settingsController = SettingsController(_appController, _prefs);
     _savedSearchController = SavedSearchController(_prefs, _carsController);
     _recentViewsController = RecentViewsController(_prefs, _carsController);
+    _reviewController = ReviewController(
+      carsController: _carsController,
+      savedSearchController: _savedSearchController,
+      myCarController: _myCarController,
+    );
     _router = AppRouter(
       appController: _appController,
       carsController: _carsController,
@@ -66,8 +73,10 @@ class _AutoDeckAppState extends State<AutoDeckApp> {
       settingsController: _settingsController,
       savedSearchController: _savedSearchController,
       recentViewsController: _recentViewsController,
+      reviewController: _reviewController,
     );
     await _carsController.initialize();
+    await _reviewController.runAnalysis();
     _initialRoute = !_appController.hasSeenOnboarding
         ? '/onboarding'
         : (_appController.user == null ? '/auth/login' : '/home');
@@ -79,6 +88,7 @@ class _AutoDeckAppState extends State<AutoDeckApp> {
   @override
   void dispose() {
     _carsController.disposeControllers();
+    _reviewController.dispose();
     super.dispose();
   }
 

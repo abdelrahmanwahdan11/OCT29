@@ -200,6 +200,39 @@ class AppLocalizations {
       'phase_subscription_description': 'Offer dealer workspaces, analytics packs, and white-label themes.',
       'phase_ar_title': 'AR showroom layers',
       'phase_ar_description': 'Drop cars into your driveway using on-device augmented reality previews.',
+      'launch_review': 'Launch readiness review',
+      'launch_review_title': 'Launch readiness review',
+      'launch_review_subtitle': 'Final checklist before backend integration',
+      'launch_review_body': 'Team one analyses the app and team two applies fixes until everything is approved.',
+      'review_section_observations': 'Team one observations',
+      'review_section_actions': 'Team two adjustments',
+      'review_refresh': 'Re-run analysis',
+      'review_status_pass': 'Ready',
+      'review_status_warning': 'Needs polish',
+      'review_status_fail': 'Action required',
+      'review_issue_catalog': 'Catalog coverage',
+      'review_issue_catalog_desc': 'Ensure the offline catalog is populated before connecting to live services.',
+      'review_metric_cars': '{count} cars',
+      'review_action_refresh_catalog': 'Rebuild catalog cache',
+      'review_issue_spinset': '3D spin coverage',
+      'review_issue_spinset_desc': 'Guarantee each listing delivers a smooth 360° experience.',
+      'review_metric_spinset': '{percent}% coverage',
+      'review_action_normalize_spinsets': 'Normalize spin frames',
+      'review_issue_localization': 'Localization completeness',
+      'review_issue_localization_desc': 'Match Arabic and English strings to avoid runtime gaps.',
+      'review_metric_missing_keys': '{count} strings pending',
+      'review_issue_saved_search': 'Saved search readiness',
+      'review_issue_saved_search_desc': 'Provide at least one curated search to demonstrate persistence.',
+      'review_metric_saved_search': '{count} saved',
+      'review_action_seed_saved_search': 'Seed sample search',
+      'review_issue_offer_watch': 'Offer watch readiness',
+      'review_issue_offer_watch_desc': 'Showcase offer notifications with a pre-filled watch.',
+      'review_metric_offer_watch': '{count} watches',
+      'review_action_seed_offer_watch': 'Seed offer watch',
+      'review_manual_approve': 'Mark as approved',
+      'review_manual_override': 'Manually approved',
+      'review_tile_ready': 'All checks approved',
+      'review_tile_pending': '{count} items pending',
       'maintenance_tip_oil': 'Time to change engine oil soon.',
       'maintenance_tip_tires': 'Check tire pressure monthly.',
     },
@@ -397,10 +430,60 @@ class AppLocalizations {
       'phase_subscription_description': 'توفير مساحات عمل للوكلاء، وحزم تحليلات، وقوالب مخصصة.',
       'phase_ar_title': 'طبقات عرض الواقع المعزز',
       'phase_ar_description': 'إسقاط السيارات في محيطك باستخدام معاينات الواقع المعزز على الجهاز.',
+      'launch_review': 'مراجعة الجاهزية للإطلاق',
+      'launch_review_title': 'مراجعة الجاهزية للإطلاق',
+      'launch_review_subtitle': 'قائمة التحقق النهائية قبل الربط بالخادم',
+      'launch_review_body': 'يحلل الفريق الأول التطبيق ويطبّق الفريق الثاني الإصلاحات حتى اعتماد جميع البنود.',
+      'review_section_observations': 'ملاحظات الفريق الأول',
+      'review_section_actions': 'تعديلات الفريق الثاني',
+      'review_refresh': 'إعادة التحليل',
+      'review_status_pass': 'جاهز',
+      'review_status_warning': 'يحتاج تحسين',
+      'review_status_fail': 'يتطلب إجراء',
+      'review_issue_catalog': 'تغطية الكتالوج',
+      'review_issue_catalog_desc': 'تأكد من امتلاء الكتالوج المحلي قبل الاتصال بالخدمات الحية.',
+      'review_metric_cars': '{count} سيارة',
+      'review_action_refresh_catalog': 'إعادة بناء الكتالوج',
+      'review_issue_spinset': 'تغطية العرض ثلاثي الأبعاد',
+      'review_issue_spinset_desc': 'ضمن تجربة 360° سلسة لكل إعلان.',
+      'review_metric_spinset': '{percent}% تغطية',
+      'review_action_normalize_spinsets': 'تطبيع إطارات الدوران',
+      'review_issue_localization': 'اكتمال الترجمة',
+      'review_issue_localization_desc': 'طابق النصوص العربية والإنجليزية لتجنب النواقص أثناء التشغيل.',
+      'review_metric_missing_keys': '{count} نصوص ناقصة',
+      'review_issue_saved_search': 'جاهزية البحث المحفوظ',
+      'review_issue_saved_search_desc': 'قدّم بحثاً منسقاً واحداً على الأقل لإبراز ميزة الحفظ.',
+      'review_metric_saved_search': '{count} محفوظ',
+      'review_action_seed_saved_search': 'إضافة بحث تجريبي',
+      'review_issue_offer_watch': 'جاهزية مراقبة العروض',
+      'review_issue_offer_watch_desc': 'اعرض مراقبة عروض جاهزة لتوضيح التنبيهات.',
+      'review_metric_offer_watch': '{count} مراقبة',
+      'review_action_seed_offer_watch': 'إضافة مراقبة تجريبية',
+      'review_manual_approve': 'وضع علامة تمت الموافقة',
+      'review_manual_override': 'مُعتمد يدوياً',
+      'review_tile_ready': 'جميع البنود معتمدة',
+      'review_tile_pending': '{count} عناصر بانتظار المراجعة',
       'maintenance_tip_oil': 'اقترب موعد تغيير زيت المحرك.',
       'maintenance_tip_tires': 'افحص ضغط الإطارات شهريًا.',
     },
   };
+
+  static Map<String, List<String>> missingLocalizationKeys() {
+    final Set<String> union = <String>{};
+    for (final values in _localizedValues.values) {
+      union.addAll(values.keys);
+    }
+    final Map<String, List<String>> missing = <String, List<String>>{};
+    _localizedValues.forEach((locale, values) {
+      final Set<String> localeKeys = values.keys.toSet();
+      final Set<String> diff = union.difference(localeKeys);
+      if (diff.isNotEmpty) {
+        final List<String> sorted = diff.toList()..sort();
+        missing[locale] = sorted;
+      }
+    });
+    return missing;
+  }
 
   static AppLocalizations of(BuildContext context) {
     return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
@@ -409,6 +492,16 @@ class AppLocalizations {
   String t(String key) {
     final values = _localizedValues[locale.languageCode] ?? _localizedValues['en']!;
     return values[key] ?? key;
+  }
+
+  String tr(String key, [Map<String, String>? params]) {
+    var value = t(key);
+    if (params != null) {
+      params.forEach((placeholder, replacement) {
+        value = value.replaceAll('{$placeholder}', replacement);
+      });
+    }
+    return value;
   }
 }
 

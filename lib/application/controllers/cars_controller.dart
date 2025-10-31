@@ -197,10 +197,12 @@ class CarsController extends ChangeNotifier {
   final List<Car> _allCars = <Car>[];
   final List<Car> _visibleCars = <Car>[];
 
+  List<Car> get allCars => List.unmodifiable(_allCars);
   List<Car> get visibleCars => List.unmodifiable(_visibleCars);
   CarsFilter get filter => _filter;
   String get searchTerm => _searchTerm;
   SortMode get sortMode => _sortMode;
+  int get filteredTotal => _filteredTotal;
   MarketPulseSnapshot get marketPulse => _buildMarketPulse();
 
   List<Car> get recommendedForYou {
@@ -267,6 +269,57 @@ class CarsController extends ChangeNotifier {
     await _repository.cacheCars(_allCars);
     _applyFeatured();
     _applyFilters(resetPagination: true);
+    _loading = false;
+    notifyListeners();
+  }
+
+  Future<void> reseedFromAssets() async {
+    if (_loading) return;
+    _loading = true;
+    notifyListeners();
+    final List<Car> seeds = await _repository.loadSeedCars();
+    _allCars
+      ..clear()
+      ..addAll(seeds);
+    await _repository.cacheCars(_allCars);
+    _favoriteIds = await _repository.loadFavorites();
+    compareSet
+      ..clear()
+      ..ids.addAll(await _repository.loadCompare());
+    _applyFeatured();
+    _applyFilters(resetPagination: true);
+    _loading = false;
+    notifyListeners();
+  }
+
+  Future<void> normalizeSpinsets({int targetFrames = 24}) async {
+    if (_allCars.isEmpty) {
+      return;
+    }
+    bool updated = false;
+    for (int i = 0; i < _allCars.length; i++) {
+      final Car car = _allCars[i];
+      final List<String> baseFrames = (car.spinset360?.isNotEmpty ?? false)
+          ? List<String>.from(car.spinset360!)
+          : List<String>.from(car.images);
+      if (baseFrames.isEmpty) {
+        continue;
+      }
+      if ((car.spinset360?.length ?? 0) >= targetFrames) {
+        continue;
+      }
+      final List<String> expanded = _expandFrames(baseFrames, targetFrames);
+      _allCars[i] = car.copyWith(spinset360: expanded);
+      updated = true;
+    }
+    if (!updated) {
+      return;
+    }
+    _loading = true;
+    notifyListeners();
+    await _repository.cacheCars(_allCars);
+    _applyFeatured();
+    _applyFilters(resetPagination: false);
     _loading = false;
     notifyListeners();
   }
@@ -533,6 +586,17 @@ class CarsController extends ChangeNotifier {
         if (featured != 0) return featured;
         return b.year.compareTo(a.year);
     }
+  }
+
+  List<String> _expandFrames(List<String> frames, int target) {
+    if (frames.isEmpty) {
+      return frames;
+    }
+    final List<String> expanded = <String>[];
+    for (int index = 0; index < target; index++) {
+      expanded.add(frames[index % frames.length]);
+    }
+    return expanded;
   }
 
   MarketPulseSnapshot _buildMarketPulse() {
