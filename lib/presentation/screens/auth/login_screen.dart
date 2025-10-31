@@ -197,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 12),
                                 OutlinedButton(
                                   onPressed: () async {
-                                    await widget.appController.ensureGuestSession();
+                                    await widget.appController.signInAsGuest();
                                     if (!mounted) return;
                                     Navigator.of(context).pushReplacementNamed('/home');
                                   },

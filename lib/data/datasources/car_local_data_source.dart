@@ -79,7 +79,6 @@ class CarLocalDataSource {
       'condition': car.condition.storageValue,
       'description': car.description,
       'is_favorite': car.isFavorite,
-      'model_3d_url': car.model3dUrl,
     };
   }
 
@@ -107,7 +106,6 @@ class CarLocalDataSource {
       condition: ConditionX.fromString(json['condition'] as String),
       description: json['description'] as String,
       isFavorite: json['is_favorite'] as bool,
-      model3dUrl: json['model_3d_url'] as String?,
     );
   }
 }

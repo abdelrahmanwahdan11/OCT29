@@ -16,17 +16,21 @@ class AppController extends ChangeNotifier {
   static const _primaryColorKey = 'app.theme.primary';
   static const _localeKey = 'app.locale';
   static const _userKey = 'app.user';
+  static const _onboardingKey = 'seen.onboarding';
 
   ThemeMode _themeMode = ThemeMode.dark;
   Color _primaryColor = const Color(0xFF36E67D);
   Locale _locale = const Locale('en');
   User? _user;
+  bool _hasSeenOnboarding = false;
 
   ThemeMode get themeMode => _themeMode;
   Color get primaryColor => _primaryColor;
   Locale get locale => _locale;
   User? get user => _user;
   bool get isGuest => _user?.isGuest ?? true;
+  bool get isAuthenticated => _user != null && !(_user?.isGuest ?? true);
+  bool get hasSeenOnboarding => _hasSeenOnboarding;
 
   Future<void> toggleThemeMode() async {
     _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
@@ -62,17 +66,24 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> ensureGuestSession() async {
-    if (_user == null) {
-      await setUser(const User(
-        id: 'guest',
-        name: 'Guest',
-        email: '',
-        phone: '',
-        avatarUrl: '',
-        isGuest: true,
-      ));
+  Future<void> signInAsGuest() async {
+    await setUser(const User(
+      id: 'guest',
+      name: 'Guest',
+      email: '',
+      phone: '',
+      avatarUrl: '',
+      isGuest: true,
+    ));
+  }
+
+  Future<void> completeOnboarding() async {
+    if (_hasSeenOnboarding) {
+      return;
     }
+    _hasSeenOnboarding = true;
+    await _prefs.setBool(_onboardingKey, true);
+    notifyListeners();
   }
 
   void _restore() {
@@ -98,6 +109,8 @@ class AppController extends ChangeNotifier {
     if (storedUser != null) {
       _user = _decodeUser(storedUser);
     }
+
+    _hasSeenOnboarding = _prefs.getBool(_onboardingKey) ?? false;
 
     notifyListeners();
   }

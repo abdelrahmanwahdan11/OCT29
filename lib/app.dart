@@ -34,6 +34,7 @@ class _AutoDeckAppState extends State<AutoDeckApp> {
   late final SavedSearchController _savedSearchController;
   late final RecentViewsController _recentViewsController;
   late final AppRouter _router;
+  late String _initialRoute;
 
   bool _ready = false;
 
@@ -66,8 +67,10 @@ class _AutoDeckAppState extends State<AutoDeckApp> {
       savedSearchController: _savedSearchController,
       recentViewsController: _recentViewsController,
     );
-    await _appController.ensureGuestSession();
     await _carsController.initialize();
+    _initialRoute = !_appController.hasSeenOnboarding
+        ? '/onboarding'
+        : (_appController.user == null ? '/auth/login' : '/home');
     setState(() {
       _ready = true;
     });
@@ -104,6 +107,7 @@ class _AutoDeckAppState extends State<AutoDeckApp> {
           themeMode: themeMode,
           theme: AppTheme.light(accent),
           darkTheme: AppTheme.dark(accent),
+          initialRoute: _initialRoute,
           onGenerateRoute: _router.onGenerateRoute,
         );
       },

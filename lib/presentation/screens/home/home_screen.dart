@@ -122,6 +122,59 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             SliverToBoxAdapter(
+              child: AnimatedBuilder(
+                animation: widget.carsController,
+                builder: (context, _) {
+                  final snapshot = widget.carsController.marketPulse;
+                  if (snapshot.inventoryCount == 0) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                    child: _MarketPulseCard(snapshot: snapshot),
+                  );
+                },
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: AnimatedBuilder(
+                animation: widget.carsController,
+                builder: (context, _) {
+                  final recommended = widget.carsController.recommendedForYou;
+                  if (recommended.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                    child: _RecommendationSection(
+                      title: l10n.t('recommended_for_you'),
+                      cars: recommended,
+                      onTap: (car) => Navigator.pushNamed(context, '/details/${car.id}'),
+                    ),
+                  );
+                },
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: AnimatedBuilder(
+                animation: widget.carsController,
+                builder: (context, _) {
+                  final eco = widget.carsController.ecoHighlights;
+                  if (eco.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                    child: _RecommendationSection(
+                      title: l10n.t('eco_spotlight'),
+                      cars: eco,
+                      onTap: (car) => Navigator.pushNamed(context, '/details/${car.id}'),
+                    ),
+                  );
+                },
+              ),
+            ),
+            SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: ValueListenableBuilder<List<Car>>(
@@ -513,6 +566,274 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       car: car,
       onViewDetails: () => Navigator.pushNamed(context, '/details/${car.id}'),
+    );
+  }
+}
+
+class _MarketPulseCard extends StatelessWidget {
+  const _MarketPulseCard({required this.snapshot});
+
+  final MarketPulseSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final theme = Theme.of(context).textTheme;
+    final String currency = snapshot.fastestCar?.currency ?? snapshot.longestRangeCar?.currency ?? 'USD';
+    final String avgPrice = '$currency ${_formatNumber(snapshot.averagePrice)}';
+    final String avgMileage = '${_formatNumber(snapshot.averageMileage)} km';
+    final String inventoryLabel = l10n.t('inventory_value').replaceAll('{count}', snapshot.inventoryCount.toString());
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: colors.accent.withOpacity(0.14),
+            blurRadius: 28,
+            offset: const Offset(0, 18),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.t('market_pulse'),
+                  style: theme.titleMedium?.copyWith(color: colors.onSurface, fontWeight: FontWeight.w700),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: colors.accent.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  l10n.t('stage_five_badge'),
+                  style: theme.labelLarge?.copyWith(color: colors.accent, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 24,
+            runSpacing: 16,
+            children: [
+              _PulseStat(label: l10n.t('avg_price_label'), value: avgPrice),
+              _PulseStat(label: l10n.t('avg_mileage_label'), value: avgMileage),
+              _PulseStat(label: l10n.t('inventory_depth_label'), value: inventoryLabel),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (snapshot.fastestCar != null)
+            _PulseHighlight(
+              label: l10n.t('fastest_spin_label'),
+              value: '${snapshot.fastestCar!.title} • ${snapshot.fastestCar!.topSpeedKmh} km/h',
+              image: snapshot.fastestCar!.images.first,
+            ),
+          if (snapshot.longestRangeCar != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: _PulseHighlight(
+                label: l10n.t('longest_range_label'),
+                value:
+                    '${snapshot.longestRangeCar!.title} • ${snapshot.longestRangeCar!.batteryRangeKm ?? snapshot.longestRangeCar!.mileageKm} km',
+                image: snapshot.longestRangeCar!.images.first,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _formatNumber(double value) {
+    final int rounded = value.round();
+    final String digits = rounded.abs().toString();
+    final StringBuffer buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      final int indexFromEnd = digits.length - i;
+      buffer.write(digits[i]);
+      if (indexFromEnd > 1 && indexFromEnd % 3 == 1 && i != digits.length - 1) {
+        buffer.write(',');
+      }
+    }
+    return buffer.toString();
+  }
+}
+
+class _PulseStat extends StatelessWidget {
+  const _PulseStat({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: colors.cardAlt,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.subtext),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.onSurface, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PulseHighlight extends StatelessWidget {
+  const _PulseHighlight({required this.label, required this.value, required this.image});
+
+  final String label;
+  final String value;
+  final String image;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.cardAlt,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: ListTile(
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(image, width: 48, height: 48, fit: BoxFit.cover),
+        ),
+        title: Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: colors.subtext),
+        ),
+        subtitle: Text(
+          value,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.onSurface),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecommendationSection extends StatelessWidget {
+  const _RecommendationSection({required this.title, required this.cars, required this.onTap});
+
+  final String title;
+  final List<Car> cars;
+  final ValueChanged<Car> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final theme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.titleMedium?.copyWith(color: colors.onSurface, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 220,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (context, index) {
+              final car = cars[index];
+              return _RecommendationTile(car: car, onTap: () => onTap(car));
+            },
+            separatorBuilder: (_, __) => const SizedBox(width: 16),
+            itemCount: cars.length,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecommendationTile extends StatelessWidget {
+  const _RecommendationTile({required this.car, required this.onTap});
+
+  final Car car;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final theme = Theme.of(context).textTheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 200,
+        decoration: BoxDecoration(
+          color: colors.card,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: colors.accent.withOpacity(0.1),
+              blurRadius: 18,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                child: Image.network(car.images.first, fit: BoxFit.cover, width: double.infinity),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    car.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.labelLarge?.copyWith(color: colors.onSurface, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${car.currency} ${car.price.toStringAsFixed(0)}',
+                    style: theme.labelMedium?.copyWith(color: colors.accent, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${car.year} • ${car.locationCity}',
+                    style: theme.bodySmall?.copyWith(color: colors.subtext),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

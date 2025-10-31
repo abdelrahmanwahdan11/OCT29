@@ -332,16 +332,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Row(
                         children: [
                           TextButton(
-                            onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
+                            onPressed: () async {
+                              await widget.appController.completeOnboarding();
+                              if (!mounted) return;
+                              Navigator.of(context).pushReplacementNamed('/auth/login');
+                            },
                             child: Text(localization.t('skip')),
                           ),
                           const Spacer(),
                           ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (_index < _pages.length - 1) {
                                 _pageController.nextPage(duration: const Duration(milliseconds: 420), curve: Curves.ease);
                               } else {
-                                Navigator.of(context).pushReplacementNamed('/home');
+                                await widget.appController.completeOnboarding();
+                                if (!mounted) return;
+                                Navigator.of(context).pushReplacementNamed('/auth/login');
                               }
                             },
                             style: ElevatedButton.styleFrom(

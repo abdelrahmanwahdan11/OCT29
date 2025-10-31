@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:iconly/iconly.dart';
-import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
@@ -27,11 +26,6 @@ class _HeroViewerState extends State<HeroViewer> with SingleTickerProviderStateM
   int _index = 0;
   Timer? _autoTimer;
   bool _autoRotate = false;
-  bool _modelAutoRotate = true;
-  bool _modelLoaded = false;
-  String _cameraOrbit = '0deg 75deg auto';
-
-  bool get _useModelViewer => widget.car.model3dUrl?.isNotEmpty == true;
 
   @override
   void initState() {
@@ -91,9 +85,6 @@ class _HeroViewerState extends State<HeroViewer> with SingleTickerProviderStateM
   }
 
   void _startAutoRotate() {
-    if (_useModelViewer) {
-      return;
-    }
     _autoTimer?.cancel();
     final frames = widget.car.spinset360?.isNotEmpty == true ? widget.car.spinset360! : widget.car.images;
     if (frames.length <= 1) {
@@ -115,23 +106,6 @@ class _HeroViewerState extends State<HeroViewer> with SingleTickerProviderStateM
     _autoTimer = null;
   }
 
-  void _toggleModelAutoRotate() {
-    setState(() => _modelAutoRotate = !_modelAutoRotate);
-  }
-
-  void _resetModelView() {
-    setState(() {
-      _cameraOrbit = '0deg 75deg auto';
-      _modelAutoRotate = true;
-    });
-  }
-
-  void _onModelLoaded() {
-    if (!_modelLoaded && mounted) {
-      setState(() => _modelLoaded = true);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final frames = widget.car.spinset360?.isNotEmpty == true ? widget.car.spinset360! : widget.car.images;
@@ -149,129 +123,102 @@ class _HeroViewerState extends State<HeroViewer> with SingleTickerProviderStateM
         final locale = Localizations.localeOf(context);
         final fuelLabel = locale.languageCode == 'ar' ? widget.car.fuel.labelAr : widget.car.fuel.labelEn;
         final transmissionLabel = locale.languageCode == 'ar' ? widget.car.transmission.labelAr : widget.car.transmission.labelEn;
-        final List<Widget> sections = <Widget>[
-          SizedBox(
-            height: viewerHeight,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: _useModelViewer ? _buildModelViewerWidget(colors, l10n) : _buildSpinViewer(frames, colors, l10n),
-            ),
-          ),
-        ];
-
-        if (_useModelViewer) {
-          sections
-            ..add(const SizedBox(height: 12))
-            ..add(
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    FilledButton.tonalIcon(
-                      onPressed: _toggleModelAutoRotate,
-                      icon: Icon(_modelAutoRotate ? Icons.pause_circle_filled : Icons.play_circle_fill),
-                      label: Text(_modelAutoRotate ? l10n.t('pause_spin') : l10n.t('auto_spin')),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: _resetModelView,
-                      icon: const Icon(Icons.refresh),
-                      label: Text(l10n.t('reset_view')),
-                    ),
-                  ],
-                ),
+          final List<Widget> sections = <Widget>[
+            SizedBox(
+              height: viewerHeight,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: _buildSpinViewer(frames, colors, l10n),
               ),
-            )
-            ..add(
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+            ),
+          ];
+
+        sections.add(const SizedBox(height: 12));
+        if (hasFrames) {
+          sections.add(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: _autoRotate ? l10n.t('pause_spin') : l10n.t('auto_spin'),
+                    onPressed: hasFrames ? _toggleAutoRotate : null,
+                    icon: Icon(_autoRotate ? Icons.pause_circle_filled : Icons.play_circle_fill),
+                    color: colors.accent,
+                  ),
+                  Expanded(
+                    child: Semantics(
+                      label: l10n.t('frame_scrub'),
+                      child: Slider(
+                        value: _index.toDouble().clamp(0, (frames.length - 1).toDouble()),
+                        min: 0,
+                        max: (frames.length - 1).toDouble(),
+                        divisions: frames.length - 1 == 0 ? null : frames.length - 1,
+                        onChangeStart: (_) {
+                          if (_autoRotate) {
+                            _stopAutoRotate();
+                            setState(() => _autoRotate = false);
+                          }
+                        },
+                        onChanged: (value) {
+                          final target = value.round();
+                          if (target != _index) {
+                            setState(() => _index = target);
+                            _controller.animateToPage(
+                              target,
+                              duration: const Duration(milliseconds: 260),
+                              curve: Curves.easeOut,
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+          sections.add(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              child: Align(
+                alignment: Alignment.centerRight,
                 child: Text(
-                  l10n.t('model_controls_hint'),
-                  textAlign: TextAlign.center,
+                  frameLabel,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.subtext),
                 ),
               ),
-            );
+            ),
+          );
+          sections.add(const SizedBox(height: 8));
+          sections.add(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List<Widget>.generate(
+                math.min(frames.length, 6),
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 240),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  height: 6,
+                  width: _index == index ? 24 : 10,
+                  decoration: BoxDecoration(
+                    color: _index == index ? colors.accent : colors.accent.withOpacity(0.25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ).animate().fadeIn(duration: 240.ms),
+          );
         } else {
-          sections.add(const SizedBox(height: 12));
-          if (hasFrames) {
-            sections.add(
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    IconButton(
-                      tooltip: _autoRotate ? l10n.t('pause_spin') : l10n.t('auto_spin'),
-                      onPressed: hasFrames ? _toggleAutoRotate : null,
-                      icon: Icon(_autoRotate ? Icons.pause_circle_filled : Icons.play_circle_fill),
-                      color: colors.accent,
-                    ),
-                    Expanded(
-                      child: Semantics(
-                        label: l10n.t('frame_scrub'),
-                        child: Slider(
-                          value: _index.toDouble(),
-                          min: 0,
-                          max: (frames.length - 1).toDouble(),
-                          divisions: frames.length - 1,
-                          onChangeStart: (_) {
-                            if (_autoRotate) {
-                              _stopAutoRotate();
-                              setState(() => _autoRotate = false);
-                            }
-                          },
-                          onChanged: (value) {
-                            final target = value.round();
-                            if (target != _index) {
-                              setState(() => _index = target);
-                              _controller.animateToPage(
-                                target,
-                                duration: const Duration(milliseconds: 260),
-                                curve: Curves.easeOut,
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+          sections.add(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                l10n.t('hero_viewer_scroll_hint'),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.subtext),
               ),
-            );
-            sections.add(
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    frameLabel,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.subtext),
-                  ),
-                ),
-              ),
-            );
-            sections.add(const SizedBox(height: 8));
-            sections.add(
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List<Widget>.generate(
-                  math.min(frames.length, 6),
-                  (index) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 240),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    height: 6,
-                    width: _index == index ? 24 : 10,
-                    decoration: BoxDecoration(
-                      color: _index == index ? colors.accent : colors.accent.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ).animate().fadeIn(duration: 240.ms),
-            );
-          }
+            ),
+          );
         }
 
         sections
@@ -366,86 +313,6 @@ class _HeroViewerState extends State<HeroViewer> with SingleTickerProviderStateM
           ),
         );
       },
-    );
-  }
-
-  Widget _buildModelViewerWidget(AppColors colors, AppLocalizations l10n) {
-    return Semantics(
-      label: l10n.t('view_in_3d'),
-      image: true,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ModelViewer(
-            key: ValueKey(widget.car.model3dUrl),
-            src: widget.car.model3dUrl!,
-            autoRotate: _modelAutoRotate,
-            cameraOrbit: _cameraOrbit,
-            cameraControls: true,
-            backgroundColor: colors.card,
-            ar: false,
-            disableZoom: false,
-            interactionPrompt: InteractionPrompt.auto,
-            onModelLoaded: (_) => _onModelLoaded(),
-          ),
-          Positioned(
-            top: 16,
-            left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: colors.accent.withOpacity(0.16),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                l10n.t('view_in_3d'),
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(color: colors.onSurface, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: IgnorePointer(
-              child: Container(
-                height: 120,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      colors.surface.withOpacity(0),
-                      colors.surface.withOpacity(0.85),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (!_modelLoaded)
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: colors.surface.withOpacity(0.86),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: colors.accent),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.t('model_loading'),
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(color: colors.onSurface),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 

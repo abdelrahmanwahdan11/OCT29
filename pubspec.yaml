@@ -15,7 +15,6 @@ dependencies:
   shared_preferences: ^2.3.2
   iconly: ^1.0.2
   flutter_animate: ^4.5.2
-  model_viewer_plus: ^1.7.0
 
 dev_dependencies:
   flutter_test:

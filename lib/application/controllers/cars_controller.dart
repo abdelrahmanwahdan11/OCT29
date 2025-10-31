@@ -201,6 +201,34 @@ class CarsController extends ChangeNotifier {
   CarsFilter get filter => _filter;
   String get searchTerm => _searchTerm;
   SortMode get sortMode => _sortMode;
+  MarketPulseSnapshot get marketPulse => _buildMarketPulse();
+
+  List<Car> get recommendedForYou {
+    if (_allCars.isEmpty) {
+      return const <Car>[];
+    }
+    final List<Car> ranked = List<Car>.from(_allCars)
+      ..sort((a, b) {
+        final int featured = b.isFeatured.compareTo(a.isFeatured);
+        if (featured != 0) return featured;
+        final int horsepowerCompare = b.horsepower.compareTo(a.horsepower);
+        if (horsepowerCompare != 0) return horsepowerCompare;
+        return a.mileageKm.compareTo(b.mileageKm);
+      });
+    return ranked.take(6).toList();
+  }
+
+  List<Car> get ecoHighlights {
+    final List<Car> eco = _allCars
+        .where((car) => car.fuel == FuelType.electric || car.fuel == FuelType.hybrid)
+        .toList();
+    if (eco.isEmpty) {
+      final fallback = recommendedForYou;
+      return fallback.length <= 3 ? List<Car>.from(fallback) : fallback.sublist(0, 3);
+    }
+    eco.sort((a, b) => (b.batteryRangeKm ?? b.mileageKm).compareTo(a.batteryRangeKm ?? a.mileageKm));
+    return eco.take(6).toList();
+  }
 
   List<String> _favoriteIds = <String>[];
   List<String> get favoriteIds => _favoriteIds;
@@ -506,4 +534,43 @@ class CarsController extends ChangeNotifier {
         return b.year.compareTo(a.year);
     }
   }
+
+  MarketPulseSnapshot _buildMarketPulse() {
+    if (_allCars.isEmpty) {
+      return const MarketPulseSnapshot();
+    }
+    final double totalPrice = _allCars.fold<double>(0, (sum, car) => sum + car.price);
+    final double totalMileage = _allCars.fold<double>(0, (sum, car) => sum + car.mileageKm.toDouble());
+    final Car fastest = _allCars.reduce((a, b) => a.topSpeedKmh >= b.topSpeedKmh ? a : b);
+    Car? longestRangeCar;
+    for (final car in _allCars) {
+      if (car.batteryRangeKm == null) continue;
+      if (longestRangeCar == null || (car.batteryRangeKm! > longestRangeCar.batteryRangeKm!)) {
+        longestRangeCar = car;
+      }
+    }
+    return MarketPulseSnapshot(
+      averagePrice: totalPrice / _allCars.length,
+      averageMileage: totalMileage / _allCars.length,
+      fastestCar: fastest,
+      longestRangeCar: longestRangeCar,
+      inventoryCount: _allCars.length,
+    );
+  }
+}
+
+class MarketPulseSnapshot {
+  const MarketPulseSnapshot({
+    this.averagePrice = 0,
+    this.averageMileage = 0,
+    this.fastestCar,
+    this.longestRangeCar,
+    this.inventoryCount = 0,
+  });
+
+  final double averagePrice;
+  final double averageMileage;
+  final Car? fastestCar;
+  final Car? longestRangeCar;
+  final int inventoryCount;
 }
