@@ -4,6 +4,7 @@ import '../../../application/controllers/app_controller.dart';
 import '../../../application/controllers/saved_search_controller.dart';
 import '../../../application/controllers/settings_controller.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/saved_search.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -196,7 +197,8 @@ class _LocalePickerDialog extends StatelessWidget {
             children: [
               Text(l10n.t('english')),
               if (current.languageCode == 'en') const Spacer(),
-              if (current.languageCode == 'en') const Icon(Icons.check_circle, color: Colors.green),
+              if (current.languageCode == 'en')
+                Icon(Icons.check_circle, color: AppColors.of(context).success),
             ],
           ),
         ),
@@ -206,7 +208,8 @@ class _LocalePickerDialog extends StatelessWidget {
             children: [
               Text(l10n.t('arabic')),
               if (current.languageCode == 'ar') const Spacer(),
-              if (current.languageCode == 'ar') const Icon(Icons.check_circle, color: Colors.green),
+              if (current.languageCode == 'ar')
+                Icon(Icons.check_circle, color: AppColors.of(context).success),
             ],
           ),
         ),

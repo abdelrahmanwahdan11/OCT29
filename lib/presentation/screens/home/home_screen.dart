@@ -7,6 +7,7 @@ import '../../../application/controllers/cars_controller.dart';
 import '../../../application/controllers/recent_views_controller.dart';
 import '../../../application/controllers/tutorial_controller.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/car.dart';
 import '../../widgets/car_card.dart';
 import '../../widgets/hero_viewer.dart';
@@ -345,6 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showOverlay(Car car) {
     final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
     showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -354,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
-            color: Colors.black54,
+            color: colors.background.withOpacity(0.82),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
             child: Center(
               child: Material(

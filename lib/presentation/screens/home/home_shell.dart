@@ -133,7 +133,10 @@ class _BadgeIcon extends StatelessWidget {
                 child: Center(
                   child: Text(
                     count > 9 ? '9+' : '$count',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white, fontSize: 10),
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: Theme.of(context).colorScheme.onPrimary, fontSize: 10),
                   ),
                 ),
               ),
