@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../application/controllers/cars_controller.dart';
 import '../../../application/controllers/saved_search_controller.dart';
+import '../../../application/controllers/settings_controller.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../domain/entities/car.dart';
 import '../../../domain/enums/condition.dart';
@@ -17,10 +18,12 @@ class CatalogScreen extends StatefulWidget {
     super.key,
     required this.carsController,
     required this.savedSearchController,
+    required this.settingsController,
   });
 
   final CarsController carsController;
   final SavedSearchController savedSearchController;
+  final SettingsController settingsController;
 
   @override
   State<CatalogScreen> createState() => _CatalogScreenState();
@@ -63,26 +66,35 @@ class _CatalogScreenState extends State<CatalogScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return AnimatedBuilder(
-      animation: widget.carsController,
+      animation: Listenable.merge(<Listenable>[widget.carsController, widget.settingsController]),
       builder: (context, _) {
-        final isLoading = widget.carsController.isLoading;
-        final isLoadingMore = widget.carsController.isLoadingMore;
+        final bool isLoading = widget.carsController.isLoading;
+        final bool isLoadingMore = widget.carsController.isLoadingMore;
+        final bool isGrid = widget.settingsController.isCatalogGrid;
+        final SortMode sortMode = widget.carsController.sortMode;
         return Scaffold(
           appBar: AppBar(
             title: Text(l10n.t('catalog')),
             actions: [
+              PopupMenuButton<SortMode>(
+                tooltip: l10n.t('sort'),
+                initialValue: sortMode,
+                onSelected: widget.carsController.updateSort,
+                itemBuilder: (context) => <PopupMenuEntry<SortMode>>[
+                  _buildSortEntry(context, SortMode.newest, l10n.t('newest'), sortMode),
+                  _buildSortEntry(context, SortMode.priceAsc, l10n.t('price_asc'), sortMode),
+                  _buildSortEntry(context, SortMode.priceDesc, l10n.t('price_desc'), sortMode),
+                  _buildSortEntry(context, SortMode.yearAsc, l10n.t('year_asc'), sortMode),
+                  _buildSortEntry(context, SortMode.yearDesc, l10n.t('year_desc'), sortMode),
+                  _buildSortEntry(context, SortMode.mileageAsc, l10n.t('mileage_asc'), sortMode),
+                  _buildSortEntry(context, SortMode.mileageDesc, l10n.t('mileage_desc'), sortMode),
+                ],
+                icon: const Icon(Icons.sort),
+              ),
               IconButton(
-                icon: const Icon(Icons.save_alt),
-                tooltip: l10n.t('save_search'),
-                onPressed: () async {
-                  final query = _searchController.text.trim().isEmpty
-                      ? '${l10n.t('search')} ${DateTime.now().hour}:${DateTime.now().minute}'
-                      : _searchController.text.trim();
-                  await widget.savedSearchController.addSearch(query, widget.carsController.filter);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.t('search_saved'))));
-                  }
-                },
+                tooltip: isGrid ? l10n.t('list') : l10n.t('grid'),
+                onPressed: widget.settingsController.toggleCatalogLayout,
+                icon: Icon(isGrid ? Icons.view_list : Icons.grid_view),
               ),
             ],
           ),
@@ -92,24 +104,45 @@ class _CatalogScreenState extends State<CatalogScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.search),
-                            hintText: l10n.t('search'),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Semantics(
+                              label: l10n.t('search'),
+                              textField: true,
+                              child: TextField(
+                                controller: _searchController,
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(Icons.search),
+                                  hintText: l10n.t('search'),
+                                ),
+                                onChanged: widget.carsController.updateSearch,
+                                textInputAction: TextInputAction.search,
+                              ),
+                            ),
                           ),
-                          onChanged: widget.carsController.updateSearch,
+                          const SizedBox(width: 12),
+                          FilledButton.icon(
+                            onPressed: _openFilterSheet,
+                            icon: const Icon(Icons.filter_alt),
+                            label: Text(l10n.t('filter')),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.bookmark_add_outlined),
+                          label: Text(l10n.t('save_search')),
+                          onPressed: () => _onSaveSearch(context, l10n),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      FilledButton.icon(
-                        onPressed: _openFilterSheet,
-                        icon: const Icon(Icons.filter_alt),
-                        label: Text(l10n.t('filter')),
-                      ),
+                      const SizedBox(height: 8),
+                      _buildActiveFilterRow(context, l10n),
                     ],
                   ),
                 ),
@@ -121,39 +154,19 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           builder: (context, cars, _) {
                             if (cars.isEmpty) {
                               return _EmptyState(
-                                onReset: widget.carsController.clearFilters,
+                                onReset: () {
+                                  widget.carsController.clearFilters();
+                                  widget.carsController.updateSearch('');
+                                },
                                 message: l10n.t('no_cars_found'),
                                 actionLabel: l10n.t('adjust_filters'),
                               );
                             }
-                            return ListView.builder(
-                              controller: widget.carsController.scrollController,
-                              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                              itemCount: isLoadingMore ? cars.length + 1 : cars.length,
-                              itemBuilder: (context, index) {
-                                if (index >= cars.length) {
-                                  return const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 16),
-                                    child: Center(child: CircularProgressIndicator()),
-                                  );
-                                }
-                                final car = cars[index];
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  child: _SwipeActions(
-                                    onFavorite: () => widget.carsController.toggleFavorite(car.id),
-                                    onCompare: () => widget.carsController.toggleCompare(car.id),
-                                    child: CarCard(
-                                      car: car,
-                                     onFavorite: () => widget.carsController.toggleFavorite(car.id),
-                                     isFavorite: widget.carsController.isFavorite(car.id),
-                                     onCompare: () => widget.carsController.toggleCompare(car.id),
-                                     onDetails: () => Navigator.pushNamed(context, '/details/${car.id}'),
-                                     onImageTap: () => _showOverlay(car),
-                                    ),
-                                  ).animate().fade(duration: 320.ms, delay: (index * 40).ms).slide(begin: const Offset(0, 0.1)),
-                                );
-                              },
+                            return AnimatedSwitcher(
+                              duration: 300.ms,
+                              child: isGrid
+                                  ? _buildGrid(cars, isLoadingMore, l10n)
+                                  : _buildList(cars, isLoadingMore, l10n),
                             );
                           },
                         ),
@@ -166,22 +179,113 @@ class _CatalogScreenState extends State<CatalogScreen> {
     );
   }
 
+  PopupMenuItem<SortMode> _buildSortEntry(
+    BuildContext context,
+    SortMode mode,
+    String label,
+    SortMode current,
+  ) {
+    return PopupMenuItem<SortMode>(
+      value: mode,
+      child: Row(
+        children: [
+          if (mode == current) const Icon(Icons.check, size: 18) else const SizedBox(width: 18),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildList(List<Car> cars, bool isLoadingMore, AppLocalizations l10n) {
+    return ListView.builder(
+      controller: widget.carsController.scrollController,
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: isLoadingMore ? cars.length + 1 : cars.length,
+      itemBuilder: (context, index) {
+        if (index >= cars.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final car = cars[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: _SwipeActions(
+            onFavorite: () => widget.carsController.toggleFavorite(car.id),
+            onCompare: () => widget.carsController.toggleCompare(car.id),
+            child: CarCard(
+              car: car,
+              onFavorite: () => widget.carsController.toggleFavorite(car.id),
+              isFavorite: widget.carsController.isFavorite(car.id),
+              onCompare: () => widget.carsController.toggleCompare(car.id),
+              onDetails: () => Navigator.pushNamed(context, '/details/${car.id}'),
+              onImageTap: () => _showOverlay(car, l10n),
+            ),
+          ).animate().fade(duration: 320.ms, delay: (index * 40).ms).slide(begin: const Offset(0, 0.08)),
+        );
+      },
+    );
+  }
+
+  Widget _buildGrid(List<Car> cars, bool isLoadingMore, AppLocalizations l10n) {
+    return GridView.builder(
+      controller: widget.carsController.scrollController,
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      physics: const AlwaysScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.78,
+      ),
+      itemCount: isLoadingMore ? cars.length + 1 : cars.length,
+      itemBuilder: (context, index) {
+        if (index >= cars.length) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final car = cars[index];
+        return CarCard(
+          car: car,
+          onFavorite: () => widget.carsController.toggleFavorite(car.id),
+          isFavorite: widget.carsController.isFavorite(car.id),
+          onCompare: () => widget.carsController.toggleCompare(car.id),
+          onDetails: () => Navigator.pushNamed(context, '/details/${car.id}'),
+          onImageTap: () => _showOverlay(car, l10n),
+        ).animate().fade(duration: 280.ms, delay: (index * 24).ms).scale(begin: const Offset(0.98, 0.98));
+      },
+    );
+  }
+
   Widget _buildSkeletons() {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      physics: const AlwaysScrollableScrollPhysics(),
       itemCount: 10,
       itemBuilder: (_, __) => const SkeletonCard(),
       separatorBuilder: (_, __) => const SizedBox(height: 16),
     );
   }
 
+  void _onSaveSearch(BuildContext context, AppLocalizations l10n) async {
+    final query = _searchController.text.trim().isEmpty
+        ? '${l10n.t('search')} ${TimeOfDay.now().format(context)}'
+        : _searchController.text.trim();
+    await widget.savedSearchController.addSearch(query, widget.carsController.filter);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.t('search_saved'))));
+  }
+
   void _openFilterSheet() {
     final l10n = AppLocalizations.of(context);
     final filter = widget.carsController.filter;
+    final locale = Localizations.localeOf(context);
     final brands = <String>['Tesla', 'BMW', 'Audi', 'Mercedes', 'Toyota', 'Hyundai', 'Ferrari'];
     Set<String> selectedBrands = Set<String>.from(filter.brands);
     Condition? selectedCondition = filter.condition;
-    RangeValues priceRange = RangeValues(filter.minPrice ?? 0, filter.maxPrice ?? 500000);
+    RangeValues priceRange = RangeValues((filter.minPrice ?? 0).toDouble(), (filter.maxPrice ?? 500000).toDouble());
     RangeValues yearRange = RangeValues((filter.minYear ?? 1990).toDouble(), (filter.maxYear ?? 2026).toDouble());
     RangeValues mileageRange = RangeValues((filter.minMileage ?? 0).toDouble(), (filter.maxMileage ?? 300000).toDouble());
     Set<FuelType> fuels = Set<FuelType>.from(filter.fuels);
@@ -192,186 +296,210 @@ class _CatalogScreenState extends State<CatalogScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setState) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(l10n.t('filter'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-                        IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(l10n.t('brands')),
-                    Wrap(
-                      spacing: 8,
-                      children: brands
-                          .map(
-                            (brand) => FilterChip(
-                              label: Text(brand),
-                              selected: selectedBrands.contains(brand),
-                              onSelected: (value) {
-                                setState(() {
+          builder: (context, setModalState) {
+            return SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(l10n.t('filter'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                          ),
+                          IconButton(
+                            tooltip: l10n.t('close'),
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(l10n.t('brands')),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: brands
+                            .map(
+                              (brand) => FilterChip(
+                                label: Text(brand),
+                                selected: selectedBrands.contains(brand),
+                                onSelected: (value) => setModalState(() {
                                   if (value) {
                                     selectedBrands.add(brand);
                                   } else {
                                     selectedBrands.remove(brand);
                                   }
-                                });
-                              },
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(l10n.t('condition')),
-                    SegmentedButton<Condition?>(
-                      segments: const <ButtonSegment<Condition?>>[
-                        ButtonSegment(value: null, label: Text('All')),
-                        ButtonSegment(value: Condition.newCar, label: Text('New')),
-                        ButtonSegment(value: Condition.used, label: Text('Used')),
-                      ],
-                      selected: <Condition?>{selectedCondition},
-                      onSelectionChanged: (value) => setState(() => selectedCondition = value.first),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Price'),
-                    RangeSlider(
-                      min: 0,
-                      max: 500000,
-                      divisions: 50,
-                      values: priceRange,
-                      labels: RangeLabels(priceRange.start.toStringAsFixed(0), priceRange.end.toStringAsFixed(0)),
-                      onChanged: (values) => setState(() => priceRange = values),
-                    ),
-                    const Text('Year'),
-                    RangeSlider(
-                      min: 1990,
-                      max: 2026,
-                      divisions: 36,
-                      values: yearRange,
-                      labels: RangeLabels(yearRange.start.toStringAsFixed(0), yearRange.end.toStringAsFixed(0)),
-                      onChanged: (values) => setState(() => yearRange = values),
-                    ),
-                    const Text('Mileage'),
-                    RangeSlider(
-                      min: 0,
-                      max: 300000,
-                      divisions: 30,
-                      values: mileageRange,
-                      labels: RangeLabels(mileageRange.start.toStringAsFixed(0), mileageRange.end.toStringAsFixed(0)),
-                      onChanged: (values) => setState(() => mileageRange = values),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Fuel'),
-                    Wrap(
-                      spacing: 8,
-                      children: FuelType.values
-                          .map(
-                            (fuel) => FilterChip(
-                              label: Text(fuel.labelEn),
-                              selected: fuels.contains(fuel),
-                              onSelected: (value) => setState(() {
-                                if (value) {
-                                  fuels.add(fuel);
-                                } else {
-                                  fuels.remove(fuel);
-                                }
-                              }),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Transmission'),
-                    Wrap(
-                      spacing: 8,
-                      children: Transmission.values
-                          .map(
-                            (transmission) => FilterChip(
-                              label: Text(transmission.labelEn),
-                              selected: transmissions.contains(transmission),
-                              onSelected: (value) => setState(() {
-                                if (value) {
-                                  transmissions.add(transmission);
-                                } else {
-                                  transmissions.remove(transmission);
-                                }
-                              }),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Seats'),
-                    Wrap(
-                      spacing: 8,
-                      children: <int>[2, 4, 5, 7]
-                          .map(
-                            (seat) => ChoiceChip(
-                              label: Text('$seat'),
-                              selected: seats.contains(seat),
-                              onSelected: (value) => setState(() {
-                                if (value) {
-                                  seats.add(seat);
-                                } else {
-                                  seats.remove(seat);
-                                }
-                              }),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: cityController,
-                      decoration: const InputDecoration(labelText: 'City'),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            widget.carsController.clearFilters();
-                          },
-                          child: Text(l10n.t('clear')),
-                        ),
-                        const Spacer(),
-                        ElevatedButton(
-                          onPressed: () {
-                            widget.carsController.updateFilter(
-                              CarsFilter(
-                                brands: selectedBrands,
-                                condition: selectedCondition,
-                                minPrice: priceRange.start,
-                                maxPrice: priceRange.end,
-                                minYear: yearRange.start.toInt(),
-                                maxYear: yearRange.end.toInt(),
-                                minMileage: mileageRange.start.toInt(),
-                                maxMileage: mileageRange.end.toInt(),
-                                fuels: fuels,
-                                transmissions: transmissions,
-                                seats: seats,
-                                city: cityController.text.trim().isEmpty ? null : cityController.text.trim(),
+                                }),
                               ),
-                            );
-                            Navigator.pop(context);
-                          },
-                          child: Text(l10n.t('apply')),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(l10n.t('condition')),
+                      const SizedBox(height: 8),
+                      SegmentedButton<Condition?>(
+                        segments: <ButtonSegment<Condition?>>[
+                          ButtonSegment<Condition?>(value: null, label: Text(l10n.t('all'))),
+                          ButtonSegment<Condition?>(value: Condition.newCar, label: Text(l10n.t('new'))),
+                          ButtonSegment<Condition?>(value: Condition.used, label: Text(l10n.t('used'))),
+                        ],
+                        selected: <Condition?>{selectedCondition},
+                        onSelectionChanged: (selection) => setModalState(() => selectedCondition = selection.first),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(l10n.t('price')),
+                      RangeSlider(
+                        min: 0,
+                        max: 500000,
+                        divisions: 50,
+                        values: priceRange,
+                        labels: RangeLabels(
+                          _formatNumber(priceRange.start.toInt()),
+                          _formatNumber(priceRange.end.toInt()),
                         ),
-                      ],
-                    ),
-                  ],
+                        onChanged: (values) => setModalState(() => priceRange = values),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(l10n.t('year')),
+                      RangeSlider(
+                        min: 1990,
+                        max: 2026,
+                        divisions: 36,
+                        values: yearRange,
+                        labels: RangeLabels(
+                          yearRange.start.toInt().toString(),
+                          yearRange.end.toInt().toString(),
+                        ),
+                        onChanged: (values) => setModalState(() => yearRange = values),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(l10n.t('mileage')),
+                      RangeSlider(
+                        min: 0,
+                        max: 300000,
+                        divisions: 30,
+                        values: mileageRange,
+                        labels: RangeLabels(
+                          _formatNumber(mileageRange.start.toInt()),
+                          _formatNumber(mileageRange.end.toInt()),
+                        ),
+                        onChanged: (values) => setModalState(() => mileageRange = values),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(l10n.t('fuel')),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: FuelType.values
+                            .map(
+                              (fuel) => FilterChip(
+                                label: Text(_fuelLabel(fuel, locale)),
+                                selected: fuels.contains(fuel),
+                                onSelected: (value) => setModalState(() {
+                                  if (value) {
+                                    fuels.add(fuel);
+                                  } else {
+                                    fuels.remove(fuel);
+                                  }
+                                }),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(l10n.t('transmission')),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: Transmission.values
+                            .map(
+                              (transmission) => FilterChip(
+                                label: Text(_transmissionLabel(transmission, locale)),
+                                selected: transmissions.contains(transmission),
+                                onSelected: (value) => setModalState(() {
+                                  if (value) {
+                                    transmissions.add(transmission);
+                                  } else {
+                                    transmissions.remove(transmission);
+                                  }
+                                }),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(l10n.t('seats')),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: <int>[2, 4, 5, 7]
+                            .map(
+                              (seat) => ChoiceChip(
+                                label: Text('$seat'),
+                                selected: seats.contains(seat),
+                                onSelected: (value) => setModalState(() {
+                                  if (value) {
+                                    seats.add(seat);
+                                  } else {
+                                    seats.remove(seat);
+                                  }
+                                }),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: cityController,
+                        decoration: InputDecoration(labelText: l10n.t('city')),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              widget.carsController.clearFilters();
+                              widget.carsController.updateSearch('');
+                            },
+                            child: Text(l10n.t('clear')),
+                          ),
+                          const Spacer(),
+                          ElevatedButton(
+                            onPressed: () {
+                              widget.carsController.updateFilter(
+                                CarsFilter(
+                                  brands: selectedBrands,
+                                  condition: selectedCondition,
+                                  minPrice: priceRange.start == 0 ? null : priceRange.start,
+                                  maxPrice: priceRange.end == 500000 ? null : priceRange.end,
+                                  minYear: yearRange.start.toInt() == 1990 ? null : yearRange.start.toInt(),
+                                  maxYear: yearRange.end.toInt() == 2026 ? null : yearRange.end.toInt(),
+                                  minMileage: mileageRange.start.toInt() == 0 ? null : mileageRange.start.toInt(),
+                                  maxMileage: mileageRange.end.toInt() == 300000 ? null : mileageRange.end.toInt(),
+                                  fuels: fuels,
+                                  transmissions: transmissions,
+                                  seats: seats,
+                                  city: cityController.text.trim().isEmpty ? null : cityController.text.trim(),
+                                ),
+                              );
+                              Navigator.pop(context);
+                            },
+                            child: Text(l10n.t('apply')),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -381,47 +509,151 @@ class _CatalogScreenState extends State<CatalogScreen> {
     );
   }
 
-  void _showOverlay(Car car) {
-    final l10n = AppLocalizations.of(context);
+  Widget _buildActiveFilterRow(BuildContext context, AppLocalizations l10n) {
+    final filter = widget.carsController.filter;
+    final locale = Localizations.localeOf(context);
+    final chips = <Widget>[];
+
+    if (_searchController.text.trim().isNotEmpty) {
+      chips.add(_buildChip(l10n.t('search'), _searchController.text.trim(), () {
+        _searchController.clear();
+        widget.carsController.updateSearch('');
+      }));
+    }
+
+    for (final brand in filter.brands) {
+      chips.add(_buildChip(l10n.t('brand'), brand, () {
+        final next = filter.copyWith(brands: Set<String>.from(filter.brands)..remove(brand));
+        widget.carsController.updateFilter(next);
+      }));
+    }
+
+    if (filter.condition != null) {
+      chips.add(_buildChip(l10n.t('condition'), _conditionLabel(filter.condition!, locale), () {
+        widget.carsController.updateFilter(filter.copyWith(clearCondition: true));
+      }));
+    }
+
+    if (filter.minPrice != null || filter.maxPrice != null) {
+      final min = filter.minPrice != null ? _formatNumber(filter.minPrice!.toInt()) : '0';
+      final max = filter.maxPrice != null ? _formatNumber(filter.maxPrice!.toInt()) : '500k';
+      chips.add(_buildChip(l10n.t('price'), '$min – $max', () {
+        widget.carsController.updateFilter(filter.copyWith(clearMinPrice: true, clearMaxPrice: true));
+      }));
+    }
+
+    if (filter.minYear != null || filter.maxYear != null) {
+      final min = filter.minYear?.toString() ?? '1990';
+      final max = filter.maxYear?.toString() ?? '2026';
+      chips.add(_buildChip(l10n.t('year'), '$min – $max', () {
+        widget.carsController.updateFilter(filter.copyWith(clearMinYear: true, clearMaxYear: true));
+      }));
+    }
+
+    if (filter.minMileage != null || filter.maxMileage != null) {
+      final min = filter.minMileage != null ? _formatNumber(filter.minMileage!) : '0';
+      final max = filter.maxMileage != null ? _formatNumber(filter.maxMileage!) : '300k';
+      chips.add(_buildChip(l10n.t('mileage'), '$min – $max', () {
+        widget.carsController.updateFilter(filter.copyWith(clearMinMileage: true, clearMaxMileage: true));
+      }));
+    }
+
+    for (final fuel in filter.fuels) {
+      chips.add(_buildChip(l10n.t('fuel'), _fuelLabel(fuel, locale), () {
+        final updated = Set<FuelType>.from(filter.fuels)..remove(fuel);
+        widget.carsController.updateFilter(filter.copyWith(fuels: updated));
+      }));
+    }
+
+    for (final transmission in filter.transmissions) {
+      chips.add(_buildChip(l10n.t('transmission'), _transmissionLabel(transmission, locale), () {
+        final updated = Set<Transmission>.from(filter.transmissions)..remove(transmission);
+        widget.carsController.updateFilter(filter.copyWith(transmissions: updated));
+      }));
+    }
+
+    for (final seat in filter.seats) {
+      chips.add(_buildChip(l10n.t('seats'), seat.toString(), () {
+        final updated = Set<int>.from(filter.seats)..remove(seat);
+        widget.carsController.updateFilter(filter.copyWith(seats: updated));
+      }));
+    }
+
+    if (filter.city != null && filter.city!.isNotEmpty) {
+      chips.add(_buildChip(l10n.t('city'), filter.city!, () {
+        widget.carsController.updateFilter(filter.copyWith(clearCity: true));
+      }));
+    }
+
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    chips.add(ActionChip(
+      label: Text(l10n.t('clear_all')),
+      onPressed: () {
+        _searchController.clear();
+        widget.carsController.clearFilters();
+        widget.carsController.updateSearch('');
+      },
+    ));
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: chips,
+    );
+  }
+
+  Widget _buildChip(String label, String value, VoidCallback onRemoved) {
+    return InputChip(
+      label: Text('$label: $value'),
+      onDeleted: onRemoved,
+    );
+  }
+
+  void _showOverlay(Car car, AppLocalizations l10n) {
     showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'preview',
+      barrierLabel: l10n.t('view_details'),
       transitionDuration: 240.ms,
       pageBuilder: (_, __, ___) {
-        return GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            color: Colors.black54,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
-            child: Center(
-              child: Material(
-                borderRadius: BorderRadius.circular(24),
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Semantics(
+              namesRoute: true,
+              label: l10n.t('car_preview'),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(24),
+                ),
                 clipBehavior: Clip.antiAlias,
-                child: SizedBox(
-                  width: 360,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      HeroViewer(car: car),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            Text(car.title, style: Theme.of(context).textTheme.titleMedium),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                Navigator.pushNamed(context, '/details/${car.id}');
-                              },
-                              child: Text(l10n.t('view_details')),
-                            ),
-                          ],
-                        ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    HeroViewer(car: car),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(car.title, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              Navigator.pushNamed(context, '/details/${car.id}');
+                            },
+                            child: Text(l10n.t('view_details')),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -429,9 +661,37 @@ class _CatalogScreenState extends State<CatalogScreen> {
         );
       },
       transitionBuilder: (_, animation, __, child) {
-        return FadeTransition(opacity: animation, child: ScaleTransition(scale: animation, child: child));
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(scale: animation, child: child),
+        );
       },
     );
+  }
+
+  String _conditionLabel(Condition condition, Locale locale) {
+    return locale.languageCode == 'ar' ? condition.labelAr : condition.labelEn;
+  }
+
+  String _fuelLabel(FuelType fuel, Locale locale) {
+    return locale.languageCode == 'ar' ? fuel.labelAr : fuel.labelEn;
+  }
+
+  String _transmissionLabel(Transmission transmission, Locale locale) {
+    return locale.languageCode == 'ar' ? transmission.labelAr : transmission.labelEn;
+  }
+
+  String _formatNumber(num value) {
+    final digits = value.toInt().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      final reverseIndex = digits.length - i;
+      buffer.write(digits[i]);
+      if (reverseIndex > 1 && reverseIndex % 3 == 1 && i != digits.length - 1) {
+        buffer.write(',');
+      }
+    }
+    return buffer.toString();
   }
 }
 
@@ -450,8 +710,8 @@ class _SwipeActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dismissible(
       key: UniqueKey(),
-      background: _ActionBackground(icon: Icons.favorite, alignment: Alignment.centerLeft),
-      secondaryBackground: _ActionBackground(icon: Icons.compare_arrows, alignment: Alignment.centerRight),
+      background: const _ActionBackground(icon: Icons.favorite, alignment: Alignment.centerLeft),
+      secondaryBackground: const _ActionBackground(icon: Icons.compare_arrows, alignment: Alignment.centerRight),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
           onFavorite();
@@ -494,17 +754,22 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.sentiment_dissatisfied, size: 48),
-          const SizedBox(height: 16),
-          Text(message),
-          const SizedBox(height: 12),
-          ElevatedButton(onPressed: onReset, child: Text(actionLabel)),
-        ],
-      ),
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+        Icon(Icons.directions_car, size: 48, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(height: 16),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 12),
+        Align(
+          child: ElevatedButton(onPressed: onReset, child: Text(actionLabel)),
+        ),
+      ],
     );
   }
 }

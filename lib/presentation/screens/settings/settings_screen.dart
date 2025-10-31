@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../application/controllers/app_controller.dart';
 import '../../../application/controllers/saved_search_controller.dart';
 import '../../../application/controllers/settings_controller.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../domain/entities/saved_search.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -19,8 +20,9 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l10n.t('settings'))),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -29,13 +31,15 @@ class SettingsScreen extends StatelessWidget {
             builder: (context, _) {
               final searches = savedSearchController.searches;
               return ExpansionTile(
-                title: const Text('Saved Searches'),
-                subtitle: Text('${searches.length} saved'),
+                title: Text(l10n.t('saved_searches')),
+                subtitle: Text('${searches.length} ${l10n.t('saved_label')}'),
                 children: searches
                     .map(
                       (SavedSearch search) => ListTile(
                         title: Text(search.query),
-                        subtitle: Text('${search.filter.brands.isEmpty ? 'Any brand' : search.filter.brands.join(', ')}'),
+                        subtitle: Text(search.filter.brands.isEmpty
+                            ? l10n.t('all')
+                            : search.filter.brands.join(', ')),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -65,15 +69,15 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
           ListTile(
-            title: const Text('Dark mode'),
+            title: Text(l10n.t('dark_mode')),
             trailing: Switch(
               value: appController.themeMode == ThemeMode.dark,
               onChanged: (_) => settingsController.toggleTheme(),
             ),
           ),
           ListTile(
-            title: const Text('Primary color'),
-            subtitle: const Text('Tap to choose'),
+            title: Text(l10n.t('primary_color')),
+            subtitle: Text(l10n.t('tap_to_choose')),
             trailing: CircleAvatar(backgroundColor: appController.primaryColor),
             onTap: () async {
               final color = await showDialog<Color>(
@@ -86,8 +90,8 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
           ListTile(
-            title: const Text('Language'),
-            subtitle: Text(appController.locale.languageCode),
+            title: Text(l10n.t('language')),
+            subtitle: Text(appController.locale.languageCode == 'ar' ? l10n.t('arabic') : l10n.t('english')),
             onTap: () async {
               final locale = await showDialog<Locale>(
                 context: context,
@@ -99,7 +103,7 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
           ListTile(
-            title: const Text('Show Tutorial'),
+            title: Text(l10n.t('show_tutorial')),
             onTap: () => Navigator.pushNamed(context, '/tutorial'),
           ),
         ],
@@ -109,17 +113,18 @@ class SettingsScreen extends StatelessWidget {
 
   Future<String?> _renameDialog(BuildContext context, String current) {
     final controller = TextEditingController(text: current);
+    final l10n = AppLocalizations.of(context);
     return showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Rename search'),
+        title: Text(l10n.t('rename_search')),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: 'Name'),
+          decoration: InputDecoration(labelText: l10n.t('name')),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Save')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.t('cancel'))),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: Text(l10n.t('save'))),
         ],
       ),
     );
@@ -146,8 +151,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Select color'),
+      title: Text(l10n.t('select_color')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -166,8 +172,8 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        TextButton(onPressed: () => Navigator.pop(context, _color), child: const Text('Apply')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.t('cancel'))),
+        TextButton(onPressed: () => Navigator.pop(context, _color), child: Text(l10n.t('apply'))),
       ],
     );
   }
@@ -180,14 +186,15 @@ class _LocalePickerDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SimpleDialog(
-      title: const Text('Choose language'),
+      title: Text(l10n.t('choose_language')),
       children: [
         SimpleDialogOption(
           onPressed: () => Navigator.pop(context, const Locale('en')),
           child: Row(
             children: [
-              const Text('English'),
+              Text(l10n.t('english')),
               if (current.languageCode == 'en') const Spacer(),
               if (current.languageCode == 'en') const Icon(Icons.check_circle, color: Colors.green),
             ],
@@ -197,7 +204,7 @@ class _LocalePickerDialog extends StatelessWidget {
           onPressed: () => Navigator.pop(context, const Locale('ar')),
           child: Row(
             children: [
-              const Text('العربية'),
+              Text(l10n.t('arabic')),
               if (current.languageCode == 'ar') const Spacer(),
               if (current.languageCode == 'ar') const Icon(Icons.check_circle, color: Colors.green),
             ],

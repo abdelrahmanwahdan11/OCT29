@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/entities/car.dart';
 import '../../domain/entities/comparison_set.dart';
@@ -9,6 +11,27 @@ import '../../domain/enums/fuel_type.dart';
 import '../../domain/enums/transmission.dart';
 import '../../domain/repositories/car_repository.dart';
 import 'rebuild_controller.dart';
+
+enum SortMode {
+  newest,
+  priceAsc,
+  priceDesc,
+  yearAsc,
+  yearDesc,
+  mileageAsc,
+  mileageDesc,
+}
+
+extension SortModeX on SortMode {
+  String get storageValue => name;
+
+  static SortMode fromString(String value) {
+    return SortMode.values.firstWhere(
+      (mode) => mode.name == value,
+      orElse: () => SortMode.newest,
+    );
+  }
+}
 
 class CarsFilter {
   CarsFilter({
@@ -77,20 +100,31 @@ class CarsFilter {
     Set<Transmission>? transmissions,
     Set<int>? seats,
     String? city,
+    bool clearBrands = false,
+    bool clearFuels = false,
+    bool clearTransmissions = false,
+    bool clearSeats = false,
+    bool clearCity = false,
+    bool clearMinPrice = false,
+    bool clearMaxPrice = false,
+    bool clearMinYear = false,
+    bool clearMaxYear = false,
+    bool clearMinMileage = false,
+    bool clearMaxMileage = false,
   }) {
     return CarsFilter(
-      brands: brands ?? this.brands,
+      brands: clearBrands ? <String>{} : brands ?? this.brands,
       condition: clearCondition ? null : condition ?? this.condition,
-      minPrice: minPrice ?? this.minPrice,
-      maxPrice: maxPrice ?? this.maxPrice,
-      minYear: minYear ?? this.minYear,
-      maxYear: maxYear ?? this.maxYear,
-      minMileage: minMileage ?? this.minMileage,
-      maxMileage: maxMileage ?? this.maxMileage,
-      fuels: fuels ?? this.fuels,
-      transmissions: transmissions ?? this.transmissions,
-      seats: seats ?? this.seats,
-      city: city ?? this.city,
+      minPrice: clearMinPrice ? null : minPrice ?? this.minPrice,
+      maxPrice: clearMaxPrice ? null : maxPrice ?? this.maxPrice,
+      minYear: clearMinYear ? null : minYear ?? this.minYear,
+      maxYear: clearMaxYear ? null : maxYear ?? this.maxYear,
+      minMileage: clearMinMileage ? null : minMileage ?? this.minMileage,
+      maxMileage: clearMaxMileage ? null : maxMileage ?? this.maxMileage,
+      fuels: clearFuels ? <FuelType>{} : fuels ?? this.fuels,
+      transmissions: clearTransmissions ? <Transmission>{} : transmissions ?? this.transmissions,
+      seats: clearSeats ? <int>{} : seats ?? this.seats,
+      city: clearCity ? null : city ?? this.city,
     );
   }
 
@@ -128,12 +162,13 @@ class CarsFilter {
 }
 
 class CarsController extends ChangeNotifier {
-  CarsController(this._repository)
+  CarsController(this._repository, this._prefs)
       : listController = RebuildController<List<Car>>(<Car>[]),
         featuredController = RebuildController<List<Car>>(<Car>[]),
         compareSet = ComparisonSet();
 
   final CarRepository _repository;
+  final SharedPreferences _prefs;
 
   final RebuildController<List<Car>> listController;
   final RebuildController<List<Car>> featuredController;
@@ -151,6 +186,13 @@ class CarsController extends ChangeNotifier {
   static const int pageSize = 10;
   String _searchTerm = '';
   CarsFilter _filter = CarsFilter();
+  SortMode _sortMode = SortMode.newest;
+  int _filteredTotal = 0;
+  Timer? _searchDebounce;
+
+  static const String _filterKey = 'data.cars.filter';
+  static const String _searchKey = 'data.cars.search';
+  static const String _sortKey = 'data.cars.sort';
 
   final List<Car> _allCars = <Car>[];
   final List<Car> _visibleCars = <Car>[];
@@ -158,6 +200,7 @@ class CarsController extends ChangeNotifier {
   List<Car> get visibleCars => List.unmodifiable(_visibleCars);
   CarsFilter get filter => _filter;
   String get searchTerm => _searchTerm;
+  SortMode get sortMode => _sortMode;
 
   List<String> _favoriteIds = <String>[];
   List<String> get favoriteIds => _favoriteIds;
@@ -182,6 +225,7 @@ class CarsController extends ChangeNotifier {
     compareSet
       ..clear()
       ..ids.addAll(await _repository.loadCompare());
+    _restorePersistedFilters();
     _applyFeatured();
     _applyFilters(resetPagination: true);
     _loading = false;
@@ -201,17 +245,26 @@ class CarsController extends ChangeNotifier {
 
   void updateSearch(String value) {
     _searchTerm = value;
-    _applyFilters(resetPagination: true);
+    _persistSearch();
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _applyFilters(resetPagination: true);
+      notifyListeners();
+    });
   }
 
   void updateFilter(CarsFilter filter) {
     _filter = filter;
+    _persistFilter();
     _applyFilters(resetPagination: true);
+    notifyListeners();
   }
 
   void clearFilter() {
     _filter = CarsFilter();
+    _prefs.remove(_filterKey);
     _applyFilters(resetPagination: true);
+    notifyListeners();
   }
 
   void clearFilters() => clearFilter();
@@ -220,7 +273,17 @@ class CarsController extends ChangeNotifier {
     _filter = filter;
     if (searchTerm != null) {
       _searchTerm = searchTerm;
+      _persistSearch();
     }
+    _persistFilter();
+    _applyFilters(resetPagination: true);
+    notifyListeners();
+  }
+
+  void updateSort(SortMode mode) {
+    if (_sortMode == mode) return;
+    _sortMode = mode;
+    _prefs.setString(_sortKey, mode.storageValue);
     _applyFilters(resetPagination: true);
     notifyListeners();
   }
@@ -249,6 +312,15 @@ class CarsController extends ChangeNotifier {
     await _repository.saveCompare(compareSet.ids);
     notifyListeners();
     return success;
+  }
+
+  Future<void> addCar(Car car) async {
+    _allCars.removeWhere((existing) => existing.id == car.id);
+    _allCars.insert(0, car);
+    await _repository.cacheCars(_allCars);
+    _applyFeatured();
+    _applyFilters(resetPagination: true);
+    notifyListeners();
   }
 
   void _applyFilters({required bool resetPagination}) {
@@ -303,7 +375,9 @@ class CarsController extends ChangeNotifier {
     }
 
     final List<Car> filteredList = filtered.toList()
-      ..sort((a, b) => b.isFeatured.compareTo(a.isFeatured));
+      ..sort(_sortComparator);
+
+    _filteredTotal = filteredList.length;
 
     if (resetPagination) {
       _currentPage = 0;
@@ -325,7 +399,7 @@ class CarsController extends ChangeNotifier {
 
   Future<void> loadMore() async {
     if (_loadingMore) return;
-    final totalPages = (_allCars.length / pageSize).ceil();
+    final totalPages = (_filteredTotal / pageSize).ceil();
     if (_currentPage + 1 >= totalPages) {
       return;
     }
@@ -364,6 +438,60 @@ class CarsController extends ChangeNotifier {
     listController.dispose();
     featuredController.dispose();
     scrollController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  void _restorePersistedFilters() {
+    final storedFilter = _prefs.getString(_filterKey);
+    if (storedFilter != null) {
+      try {
+        _filter = CarsFilter.fromJson(json.decode(storedFilter) as Map<String, dynamic>);
+      } catch (_) {
+        _filter = CarsFilter();
+      }
+    }
+    final storedSearch = _prefs.getString(_searchKey);
+    if (storedSearch != null) {
+      _searchTerm = storedSearch;
+    }
+    final storedSort = _prefs.getString(_sortKey);
+    if (storedSort != null) {
+      _sortMode = SortModeX.fromString(storedSort);
+    }
+  }
+
+  void _persistFilter() {
+    _prefs.setString(_filterKey, json.encode(_filter.toJson()));
+  }
+
+  void _persistSearch() {
+    if (_searchTerm.isEmpty) {
+      _prefs.remove(_searchKey);
+    } else {
+      _prefs.setString(_searchKey, _searchTerm);
+    }
+  }
+
+  int _sortComparator(Car a, Car b) {
+    switch (_sortMode) {
+      case SortMode.priceAsc:
+        return a.price.compareTo(b.price);
+      case SortMode.priceDesc:
+        return b.price.compareTo(a.price);
+      case SortMode.yearAsc:
+        return a.year.compareTo(b.year);
+      case SortMode.yearDesc:
+        return b.year.compareTo(a.year);
+      case SortMode.mileageAsc:
+        return a.mileageKm.compareTo(b.mileageKm);
+      case SortMode.mileageDesc:
+        return b.mileageKm.compareTo(a.mileageKm);
+      case SortMode.newest:
+      default:
+        final featured = b.isFeatured.compareTo(a.isFeatured);
+        if (featured != 0) return featured;
+        return b.year.compareTo(a.year);
+    }
   }
 }

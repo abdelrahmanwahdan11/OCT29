@@ -38,6 +38,7 @@ class _CarCardState extends State<CarCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context);
     return AnimatedContainer(
       duration: 240.ms,
       curve: Curves.easeOut,
@@ -57,13 +58,17 @@ class _CarCardState extends State<CarCard> {
         children: [
           GestureDetector(
             onTap: widget.onImageTap,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.network(
-                widget.car.images.first,
-                fit: BoxFit.cover,
-                height: 160,
-                width: double.infinity,
+            child: Semantics(
+              label: '${widget.car.brand} ${widget.car.model}',
+              image: true,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(
+                  widget.car.images.first,
+                  fit: BoxFit.cover,
+                  height: 160,
+                  width: double.infinity,
+                ),
               ),
             ),
           ),
@@ -114,11 +119,13 @@ class _CarCardState extends State<CarCard> {
                   }
                 },
                 icon: const Icon(Icons.compare_arrows),
+                tooltip: l10n.t('add_to_compare'),
               ),
               IconButton(
                 onPressed: widget.onFavorite,
                 icon: Icon(widget.isFavorite ? IconlyBold.heart : IconlyLight.heart),
                 color: widget.isFavorite ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                tooltip: l10n.t('favorites'),
               ),
             ],
           ),
@@ -133,6 +140,7 @@ class _CarCardState extends State<CarCard> {
 
   Widget _buildFront(ThemeData theme, AppLocalizations l10n) {
     final car = widget.car;
+    final locale = Localizations.localeOf(context);
     return Container(
       key: const ValueKey('front'),
       alignment: Alignment.topLeft,
@@ -148,7 +156,7 @@ class _CarCardState extends State<CarCard> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  '${car.currency} ${car.price.toStringAsFixed(0)}',
+                  _formatCurrency(car.price, car.currency),
                   style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -165,7 +173,7 @@ class _CarCardState extends State<CarCard> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${car.year} • ${car.mileageKm} km • ${car.fuel.labelEn}',
+            '${car.year} • ${car.mileageKm} km • ${locale.languageCode == 'ar' ? car.fuel.labelAr : car.fuel.labelEn}',
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6)),
           ),
           const SizedBox(height: 8),
@@ -173,9 +181,9 @@ class _CarCardState extends State<CarCard> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _SpecChip(label: '${car.seats} seats'),
+              _SpecChip(label: '${car.seats} ${l10n.t('seat')}'),
               _SpecChip(label: '${car.topSpeedKmh} km/h'),
-              _SpecChip(label: car.transmission.labelEn),
+              _SpecChip(label: locale.languageCode == 'ar' ? car.transmission.labelAr : car.transmission.labelEn),
             ],
           ),
         ],
@@ -185,23 +193,37 @@ class _CarCardState extends State<CarCard> {
 
   Widget _buildBack(ThemeData theme, AppLocalizations l10n) {
     final car = widget.car;
+    final locale = Localizations.localeOf(context);
     return Container(
       key: const ValueKey('back'),
       alignment: Alignment.topLeft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Specs', style: theme.textTheme.titleMedium),
+          Text(l10n.t('specifications'), style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
-          _SpecRow(title: 'Fuel', value: car.fuel.labelEn),
-          _SpecRow(title: 'Transmission', value: car.transmission.labelEn),
-          _SpecRow(title: 'Condition', value: car.condition.labelEn),
-          _SpecRow(title: '0-100', value: '${car.acceleration0100}s'),
+          _SpecRow(title: l10n.t('fuel'), value: locale.languageCode == 'ar' ? car.fuel.labelAr : car.fuel.labelEn),
+          _SpecRow(title: l10n.t('transmission'), value: locale.languageCode == 'ar' ? car.transmission.labelAr : car.transmission.labelEn),
+          _SpecRow(title: l10n.t('condition'), value: locale.languageCode == 'ar' ? car.condition.labelAr : car.condition.labelEn),
+          _SpecRow(title: l10n.t('acceleration'), value: '${car.acceleration0100}s'),
           if (car.batteryRangeKm != null)
-            _SpecRow(title: 'Range', value: '${car.batteryRangeKm} km'),
+            _SpecRow(title: l10n.t('battery_range'), value: '${car.batteryRangeKm} km'),
         ],
       ),
     );
+  }
+
+  String _formatCurrency(double value, String currency) {
+    final digits = value.toInt().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      final reverseIndex = digits.length - i;
+      buffer.write(digits[i]);
+      if (reverseIndex > 1 && reverseIndex % 3 == 1 && i != digits.length - 1) {
+        buffer.write(',');
+      }
+    }
+    return '$currency ${buffer.toString()}';
   }
 }
 

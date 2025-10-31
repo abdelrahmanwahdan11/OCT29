@@ -49,11 +49,11 @@ class _AutoDeckAppState extends State<AutoDeckApp> {
     _appController = AppController(_prefs);
     final dataSource = CarLocalDataSource(_prefs);
     final repository = CarRepositoryImpl(dataSource);
-    _carsController = CarsController(repository);
+    _carsController = CarsController(repository, _prefs);
     _authController = AuthController();
-    _myCarController = MyCarController();
+    _myCarController = MyCarController(_prefs, repository);
     _tutorialController = TutorialController();
-    _settingsController = SettingsController(_appController);
+    _settingsController = SettingsController(_appController, _prefs);
     _savedSearchController = SavedSearchController(_prefs, _carsController);
     _recentViewsController = RecentViewsController(_prefs, _carsController);
     _router = AppRouter(

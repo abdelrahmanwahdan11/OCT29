@@ -32,10 +32,11 @@ class SavedSearchController extends ChangeNotifier {
 
   Future<void> addSearch(String query, CarsFilter filter) async {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final filterCopy = CarsFilter.fromJson(filter.toJson());
     final search = SavedSearch(
       id: id,
       query: query,
-      filter: filter,
+      filter: filterCopy,
       createdAt: DateTime.now(),
     );
     _searches.insert(0, search);

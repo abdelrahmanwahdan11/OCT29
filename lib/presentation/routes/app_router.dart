@@ -83,6 +83,7 @@ class AppRouter {
           builder: (_) => CatalogScreen(
             carsController: carsController,
             savedSearchController: savedSearchController,
+            settingsController: settingsController,
           ),
           settings: settings,
         );
