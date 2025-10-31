@@ -1,0 +1,9 @@
+[
+  {
+    "car_id": "c001",
+    "oil_change_km_interval": 8000,
+    "tire_pressure_front": 33,
+    "tire_pressure_rear": 34,
+    "custom_notes": "استخدم زيتاً معتمداً للحفاظ على الأداء."
+  }
+]
