@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../application/controllers/app_controller.dart';
+import '../../../application/controllers/saved_search_controller.dart';
 import '../../../application/controllers/settings_controller.dart';
+import '../../../domain/entities/saved_search.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key, required this.appController, required this.settingsController});
+  const SettingsScreen({
+    super.key,
+    required this.appController,
+    required this.settingsController,
+    required this.savedSearchController,
+  });
 
   final AppController appController;
   final SettingsController settingsController;
+  final SavedSearchController savedSearchController;
 
   @override
   Widget build(BuildContext context) {
@@ -16,6 +24,46 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          AnimatedBuilder(
+            animation: savedSearchController,
+            builder: (context, _) {
+              final searches = savedSearchController.searches;
+              return ExpansionTile(
+                title: const Text('Saved Searches'),
+                subtitle: Text('${searches.length} saved'),
+                children: searches
+                    .map(
+                      (SavedSearch search) => ListTile(
+                        title: Text(search.query),
+                        subtitle: Text('${search.filter.brands.isEmpty ? 'Any brand' : search.filter.brands.join(', ')}'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.play_arrow),
+                              onPressed: () => savedSearchController.applySearch(search),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () async {
+                                final updated = await _renameDialog(context, search.query);
+                                if (updated != null && updated.isNotEmpty) {
+                                  await savedSearchController.renameSearch(search.id, updated);
+                                }
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => savedSearchController.deleteSearch(search.id),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
           ListTile(
             title: const Text('Dark mode'),
             trailing: Switch(
@@ -54,6 +102,24 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Show Tutorial'),
             onTap: () => Navigator.pushNamed(context, '/tutorial'),
           ),
+        ],
+      ),
+    );
+  }
+
+  Future<String?> _renameDialog(BuildContext context, String current) {
+    final controller = TextEditingController(text: current);
+    return showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Rename search'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Save')),
         ],
       ),
     );

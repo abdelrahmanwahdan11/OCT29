@@ -4,6 +4,8 @@ import '../../application/controllers/app_controller.dart';
 import '../../application/controllers/auth_controller.dart';
 import '../../application/controllers/cars_controller.dart';
 import '../../application/controllers/my_car_controller.dart';
+import '../../application/controllers/recent_views_controller.dart';
+import '../../application/controllers/saved_search_controller.dart';
 import '../../application/controllers/settings_controller.dart';
 import '../../application/controllers/tutorial_controller.dart';
 import '../screens/auth/forgot_screen.dart';
@@ -27,6 +29,8 @@ class AppRouter {
     required this.myCarController,
     required this.tutorialController,
     required this.settingsController,
+    required this.savedSearchController,
+    required this.recentViewsController,
   });
 
   final AppController appController;
@@ -35,6 +39,8 @@ class AppRouter {
   final MyCarController myCarController;
   final TutorialController tutorialController;
   final SettingsController settingsController;
+  final SavedSearchController savedSearchController;
+  final RecentViewsController recentViewsController;
 
   Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -47,6 +53,8 @@ class AppRouter {
             myCarController: myCarController,
             tutorialController: tutorialController,
             settingsController: settingsController,
+            savedSearchController: savedSearchController,
+            recentViewsController: recentViewsController,
           ),
           settings: settings,
         );
@@ -72,7 +80,10 @@ class AppRouter {
         );
       case '/catalog':
         return MaterialPageRoute(
-          builder: (_) => CatalogScreen(carsController: carsController),
+          builder: (_) => CatalogScreen(
+            carsController: carsController,
+            savedSearchController: savedSearchController,
+          ),
           settings: settings,
         );
       case '/compare':
@@ -92,7 +103,11 @@ class AppRouter {
         );
       case '/settings':
         return MaterialPageRoute(
-          builder: (_) => SettingsScreen(appController: appController, settingsController: settingsController),
+          builder: (_) => SettingsScreen(
+            appController: appController,
+            settingsController: settingsController,
+            savedSearchController: savedSearchController,
+          ),
           settings: settings,
         );
       case '/tutorial':
@@ -106,7 +121,11 @@ class AppRouter {
           final car = carsController.findById(carId) ??
               (carsController.visibleCars.isNotEmpty ? carsController.visibleCars.first : carsController.listController.value.first);
           return MaterialPageRoute(
-            builder: (_) => DetailsScreen(carsController: carsController, car: car),
+            builder: (_) => DetailsScreen(
+              carsController: carsController,
+              car: car,
+              recentViewsController: recentViewsController,
+            ),
             settings: settings,
           );
         }

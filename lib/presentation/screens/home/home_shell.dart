@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../application/controllers/app_controller.dart';
 import '../../../application/controllers/cars_controller.dart';
 import '../../../application/controllers/my_car_controller.dart';
+import '../../../application/controllers/recent_views_controller.dart';
+import '../../../application/controllers/saved_search_controller.dart';
 import '../../../application/controllers/settings_controller.dart';
 import '../../../application/controllers/tutorial_controller.dart';
 import '../catalog/catalog_screen.dart';
@@ -19,6 +21,8 @@ class HomeShell extends StatefulWidget {
     required this.myCarController,
     required this.tutorialController,
     required this.settingsController,
+    required this.savedSearchController,
+    required this.recentViewsController,
   });
 
   final AppController appController;
@@ -26,6 +30,8 @@ class HomeShell extends StatefulWidget {
   final MyCarController myCarController;
   final TutorialController tutorialController;
   final SettingsController settingsController;
+  final SavedSearchController savedSearchController;
+  final RecentViewsController recentViewsController;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -44,11 +50,19 @@ class _HomeShellState extends State<HomeShell> {
             appController: widget.appController,
             carsController: widget.carsController,
             tutorialController: widget.tutorialController,
+            recentViewsController: widget.recentViewsController,
           ),
-          CatalogScreen(carsController: widget.carsController),
+          CatalogScreen(
+            carsController: widget.carsController,
+            savedSearchController: widget.savedSearchController,
+          ),
           CompareScreen(carsController: widget.carsController),
           MyCarScreen(controller: widget.myCarController, carsController: widget.carsController),
-          SettingsScreen(appController: widget.appController, settingsController: widget.settingsController),
+          SettingsScreen(
+            appController: widget.appController,
+            settingsController: widget.settingsController,
+            savedSearchController: widget.savedSearchController,
+          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(

@@ -3,14 +3,21 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:iconly/iconly.dart';
 
 import '../../../application/controllers/cars_controller.dart';
+import '../../../application/controllers/recent_views_controller.dart';
 import '../../../domain/entities/car.dart';
 import '../../widgets/hero_viewer.dart';
 
 class DetailsScreen extends StatefulWidget {
-  const DetailsScreen({super.key, required this.carsController, required this.car});
+  const DetailsScreen({
+    super.key,
+    required this.carsController,
+    required this.car,
+    required this.recentViewsController,
+  });
 
   final CarsController carsController;
   final Car car;
+  final RecentViewsController recentViewsController;
 
   @override
   State<DetailsScreen> createState() => _DetailsScreenState();
@@ -18,6 +25,14 @@ class DetailsScreen extends StatefulWidget {
 
 class _DetailsScreenState extends State<DetailsScreen> {
   bool _showSpecs = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.recentViewsController.recordView(widget.car.id);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +128,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
   }
 
   void _showExplain(BuildContext context) {
+    final explanation = widget.carsController.buildAiExplainText(widget.car);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -122,10 +138,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text('AI Explain', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-            SizedBox(height: 12),
-            Text('AI analysis will provide insights later. Stay tuned!'),
+          children: [
+            const Text('AI Explain', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            Text(explanation),
           ],
         ),
       ),

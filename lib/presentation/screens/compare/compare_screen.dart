@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../application/controllers/cars_controller.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../domain/entities/car.dart';
 
 class CompareScreen extends StatelessWidget {
@@ -10,26 +11,42 @@ class CompareScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final compared = carsController.compareSet.ids
         .map((id) => carsController.findById(id))
         .whereType<Car>()
         .toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('Compare cars')),
-      body: compared.isEmpty
-          ? const Center(child: Text('Add cars to compare.'))
-          : SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Spec')),
-                  DataColumn(label: Text('Car 1')),
-                  DataColumn(label: Text('Car 2')),
-                  DataColumn(label: Text('Car 3')),
+      appBar: AppBar(title: Text(l10n.t('compare'))),
+      body: RefreshIndicator(
+        onRefresh: carsController.refresh,
+        child: compared.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                  Center(child: Text(l10n.t('compare_empty'))),
                 ],
-                rows: _buildRows(compared),
+              )
+            : ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: const [
+                        DataColumn(label: Text('Spec')),
+                        DataColumn(label: Text('Car 1')),
+                        DataColumn(label: Text('Car 2')),
+                        DataColumn(label: Text('Car 3')),
+                      ],
+                      rows: _buildRows(compared),
+                    ),
+                  ),
+                ],
               ),
-            ),
+      ),
     );
   }
 

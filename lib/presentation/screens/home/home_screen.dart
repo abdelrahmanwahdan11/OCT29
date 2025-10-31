@@ -4,6 +4,7 @@ import 'package:iconly/iconly.dart';
 
 import '../../../application/controllers/app_controller.dart';
 import '../../../application/controllers/cars_controller.dart';
+import '../../../application/controllers/recent_views_controller.dart';
 import '../../../application/controllers/tutorial_controller.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../domain/entities/car.dart';
@@ -16,11 +17,13 @@ class HomeScreen extends StatefulWidget {
     required this.appController,
     required this.carsController,
     required this.tutorialController,
+    required this.recentViewsController,
   });
 
   final AppController appController;
   final CarsController carsController;
   final TutorialController tutorialController;
+  final RecentViewsController recentViewsController;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -145,10 +148,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                         child: CarCard(
                           car: car,
-                          onTap: () => Navigator.pushNamed(context, '/details/${car.id}'),
                           onFavorite: () => widget.carsController.toggleFavorite(car.id),
                           isFavorite: widget.carsController.isFavorite(car.id),
                           onCompare: () => widget.carsController.toggleCompare(car.id),
+                          onDetails: () => Navigator.pushNamed(context, '/details/${car.id}'),
+                          onImageTap: () => _showOverlay(car),
                         ).animate().fade(duration: 400.ms, delay: (index * 60).ms).slide(begin: const Offset(0, 0.1)),
                       );
                     },
@@ -156,6 +160,68 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 );
               },
+            ),
+            SliverToBoxAdapter(
+              child: AnimatedBuilder(
+                animation: widget.recentViewsController,
+                builder: (context, _) {
+                  final recent = widget.recentViewsController.recentCars;
+                  if (recent.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 16, left: 24, right: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.t('recent_views'),
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 160,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            padding: EdgeInsets.zero,
+                            itemBuilder: (context, index) {
+                              final car = recent[index];
+                              return GestureDetector(
+                                onTap: () => Navigator.pushNamed(context, '/details/${car.id}'),
+                                child: Container(
+                                  width: 160,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(16),
+                                          child: Image.network(car.images.first, fit: BoxFit.cover, width: double.infinity),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(car.title, style: theme.textTheme.labelLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      Text('${car.currency} ${car.price.toStringAsFixed(0)}',
+                                          style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary)),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            itemCount: recent.length,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
             const SliverPadding(padding: EdgeInsets.only(bottom: 72)),
           ],
@@ -274,6 +340,59 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showOverlay(Car car) {
+    final l10n = AppLocalizations.of(context);
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'preview',
+      transitionDuration: 240.ms,
+      pageBuilder: (_, __, ___) {
+        return GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            color: Colors.black54,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+            child: Center(
+              child: Material(
+                borderRadius: BorderRadius.circular(24),
+                clipBehavior: Clip.antiAlias,
+                child: SizedBox(
+                  width: 360,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      HeroViewer(car: car),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Text(car.title, style: Theme.of(context).textTheme.titleMedium),
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.pushNamed(context, '/details/${car.id}');
+                              },
+                              child: Text(l10n.t('view_details')),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (_, animation, __, child) {
+        return FadeTransition(opacity: animation, child: ScaleTransition(scale: animation, child: child));
+      },
     );
   }
 }

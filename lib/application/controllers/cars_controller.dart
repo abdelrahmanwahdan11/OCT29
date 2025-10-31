@@ -39,6 +39,30 @@ class CarsFilter {
   final Set<int> seats;
   final String? city;
 
+  factory CarsFilter.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return CarsFilter();
+    }
+    return CarsFilter(
+      brands: (json['brands'] as List<dynamic>? ?? <dynamic>[]).cast<String>().toSet(),
+      condition: json['condition'] == null ? null : ConditionX.fromString(json['condition'] as String),
+      minPrice: (json['minPrice'] as num?)?.toDouble(),
+      maxPrice: (json['maxPrice'] as num?)?.toDouble(),
+      minYear: json['minYear'] as int?,
+      maxYear: json['maxYear'] as int?,
+      minMileage: json['minMileage'] as int?,
+      maxMileage: json['maxMileage'] as int?,
+      fuels: (json['fuels'] as List<dynamic>? ?? <dynamic>[])
+          .map((dynamic value) => FuelTypeX.fromString(value as String))
+          .toSet(),
+      transmissions: (json['transmissions'] as List<dynamic>? ?? <dynamic>[])
+          .map((dynamic value) => TransmissionX.fromString(value as String))
+          .toSet(),
+      seats: (json['seats'] as List<dynamic>? ?? <dynamic>[]).map((dynamic value) => value as int).toSet(),
+      city: json['city'] as String?,
+    );
+  }
+
   CarsFilter copyWith({
     Set<String>? brands,
     Condition? condition,
@@ -69,6 +93,38 @@ class CarsFilter {
       city: city ?? this.city,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'brands': brands.toList(),
+      'condition': condition?.storageValue,
+      'minPrice': minPrice,
+      'maxPrice': maxPrice,
+      'minYear': minYear,
+      'maxYear': maxYear,
+      'minMileage': minMileage,
+      'maxMileage': maxMileage,
+      'fuels': fuels.map((fuel) => fuel.storageValue).toList(),
+      'transmissions': transmissions.map((transmission) => transmission.storageValue).toList(),
+      'seats': seats.toList(),
+      'city': city,
+    };
+  }
+
+  bool get isEmpty {
+    return brands.isEmpty &&
+        condition == null &&
+        minPrice == null &&
+        maxPrice == null &&
+        minYear == null &&
+        maxYear == null &&
+        minMileage == null &&
+        maxMileage == null &&
+        fuels.isEmpty &&
+        transmissions.isEmpty &&
+        seats.isEmpty &&
+        (city == null || city!.isEmpty);
+  }
 }
 
 class CarsController extends ChangeNotifier {
@@ -87,6 +143,9 @@ class CarsController extends ChangeNotifier {
 
   bool _loading = false;
   bool get isLoading => _loading;
+
+  bool _loadingMore = false;
+  bool get isLoadingMore => _loadingMore;
 
   int _currentPage = 0;
   static const int pageSize = 10;
@@ -153,6 +212,17 @@ class CarsController extends ChangeNotifier {
   void clearFilter() {
     _filter = CarsFilter();
     _applyFilters(resetPagination: true);
+  }
+
+  void clearFilters() => clearFilter();
+
+  void setFilterFromSavedSearch(CarsFilter filter, {String? searchTerm}) {
+    _filter = filter;
+    if (searchTerm != null) {
+      _searchTerm = searchTerm;
+    }
+    _applyFilters(resetPagination: true);
+    notifyListeners();
   }
 
   Future<void> toggleFavorite(String carId) async {
@@ -253,18 +323,41 @@ class CarsController extends ChangeNotifier {
     listController.update(List<Car>.from(_visibleCars));
   }
 
-  void loadMore() {
+  Future<void> loadMore() async {
+    if (_loadingMore) return;
     final totalPages = (_allCars.length / pageSize).ceil();
     if (_currentPage + 1 >= totalPages) {
       return;
     }
+    _loadingMore = true;
+    notifyListeners();
+    await Future<void>.delayed(const Duration(milliseconds: 320));
     _currentPage += 1;
     _applyFilters(resetPagination: false);
+    _loadingMore = false;
+    notifyListeners();
   }
 
   void _applyFeatured() {
     final featured = _allCars.where((car) => car.isFeatured).take(6).toList();
     featuredController.update(featured);
+  }
+
+  String buildAiExplainText(Car car) {
+    final buffer = StringBuffer();
+    buffer.write('${car.brand} ${car.model} packs ${car.horsepower} hp with a top speed of ${car.topSpeedKmh} km/h, ');
+    buffer.write('making it a ${car.condition.labelEn.toLowerCase()} ${car.fuel.labelEn.toLowerCase()} option');
+    if (car.mileageKm > 0) {
+      buffer.write(' with ${car.mileageKm} km on the clock');
+    }
+    buffer.writeln('.');
+    buffer.writeln('Expect ${car.transmission.labelEn.toLowerCase()} shifts and a 0-100 sprint in ${car.acceleration0100}s.');
+    if (car.batteryRangeKm != null) {
+      buffer.writeln('Battery range comes in at about ${car.batteryRangeKm} km.');
+    }
+    buffer.writeln('Ideal for drivers in ${car.locationCity} wanting a ${car.seats}-seater with ${car.drivetrain} traction.');
+    buffer.write('Tip: compare maintenance history and schedule a ${car.fuel == FuelType.electric ? 'charge' : 'test drive'} before closing.');
+    return buffer.toString();
   }
 
   void disposeControllers() {
