@@ -9,9 +9,11 @@ import '../../../application/controllers/tutorial_controller.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/car.dart';
+import '../../../domain/enums/condition.dart';
 import '../../widgets/car_card.dart';
 import '../../widgets/hero_viewer.dart';
 import '../../widgets/skeletons.dart';
+import '../../widgets/car_preview_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -32,9 +34,34 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedCity = 'Dubai';
-  String _selectedCondition = 'All';
-  String _selectedBrand = 'All';
+  static const List<String> _cityOptions = <String>['Dubai', 'Riyadh', 'Abu Dhabi', 'Jeddah'];
+  static const List<String> _brandOptions = <String>[
+    'All',
+    'Tesla',
+    'BMW',
+    'Audi',
+    'Mercedes',
+    'Toyota',
+    'Hyundai',
+    'Ferrari',
+  ];
+
+  String _selectedCity = _cityOptions.first;
+  Condition? _selectedCondition;
+  String _selectedBrand = _brandOptions.first;
+  late final TextEditingController _modelController;
+
+  @override
+  void initState() {
+    super.initState();
+    _modelController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _modelController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Buy a Car Anytime, Anywhere',
+                                l10n.t('home_title_primary'),
                                 style: theme.textTheme.headlineMedium?.copyWith(
                                       color: colors.onBackground,
                                       fontWeight: FontWeight.w600,
@@ -68,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Explore immersive 360° spins and smart comparisons.',
+                                l10n.t('home_subtitle'),
                                 style: theme.textTheme.bodyMedium?.copyWith(color: colors.subtext),
                               ),
                             ],
@@ -87,14 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 12),
                     _BrandSelector(
                       selected: _selectedBrand,
-                      onSelected: (brand) {
-                        setState(() => _selectedBrand = brand);
-                        if (brand == 'All') {
-                          widget.carsController.clearFilter();
-                        } else {
-                          widget.carsController.updateFilter(widget.carsController.filter.copyWith(brands: <String>{brand}));
-                        }
-                      },
+                      brands: _brandOptions,
+                      onSelected: _applyBrand,
                     ),
                   ],
                 ),
@@ -134,11 +155,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Featured 3D Spins', style: theme.textTheme.titleMedium?.copyWith(color: colors.onSurface)),
+                    Text(l10n.t('featured_spins'), style: theme.textTheme.titleMedium?.copyWith(color: colors.onSurface)),
                     TextButton(
                       onPressed: () => Navigator.pushNamed(context, '/catalog'),
                       child: Text(
-                        'View all',
+                        l10n.t('view_all'),
                         style: theme.textTheme.labelLarge?.copyWith(color: colors.accent),
                       ),
                     ),
@@ -285,6 +306,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSearchCard(BuildContext context) {
     final theme = Theme.of(context);
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context);
+    final conditionLabel = _selectedCondition == null
+        ? l10n.t('all')
+        : _selectedCondition == Condition.newCar
+            ? l10n.t('new')
+            : l10n.t('used');
+    final brandLabel = _selectedBrand == 'All' ? l10n.t('all') : _selectedBrand;
+    final cityLabel = _selectedCity == 'All' ? l10n.t('all') : _selectedCity;
     return Container(
       decoration: BoxDecoration(
         color: colors.card,
@@ -305,64 +334,19 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: _SearchField(
-                  label: 'City',
-                  value: _selectedCity,
+                  label: l10n.t('city'),
+                  value: cityLabel,
                   icon: IconlyBold.location,
-                  onTap: () async {
-                    final cities = <String>['Dubai', 'Riyadh', 'Abu Dhabi', 'Jeddah'];
-                    final selected = await showModalBottomSheet<String>(
-                      context: context,
-                      backgroundColor: colors.card,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                      builder: (_) => ListView(
-                        shrinkWrap: true,
-                        children: cities
-                            .map(
-                              (city) => ListTile(
-                                title: Text(city),
-                                onTap: () => Navigator.pop(context, city),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    );
-                    if (selected != null) {
-                      setState(() => _selectedCity = selected);
-                      widget.carsController.updateFilter(
-                        widget.carsController.filter.copyWith(city: selected),
-                      );
-                    }
-                  },
+                  onTap: () => _selectCity(context),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _SearchField(
-                  label: 'Condition',
-                  value: _selectedCondition,
+                  label: l10n.t('condition'),
+                  value: conditionLabel,
                   icon: IconlyBold.category,
-                  onTap: () async {
-                    final options = <String>['All', 'New', 'Used'];
-                    final selected = await showModalBottomSheet<String>(
-                      context: context,
-                      backgroundColor: colors.card,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                      builder: (_) => Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: options
-                            .map(
-                              (option) => ListTile(
-                                title: Text(option),
-                                onTap: () => Navigator.pop(context, option),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    );
-                    if (selected != null) {
-                      setState(() => _selectedCondition = selected);
-                    }
-                  },
+                  onTap: () => _selectCondition(context),
                 ),
               ),
             ],
@@ -372,17 +356,18 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: _SearchField(
-                  label: 'Brand',
-                  value: _selectedBrand,
+                  label: l10n.t('brand'),
+                  value: brandLabel,
                   icon: IconlyBold.ticket,
-                  onTap: () {},
+                  onTap: () => _selectBrand(context),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: TextFormField(
+                  controller: _modelController,
                   decoration: InputDecoration(
-                    labelText: 'Model',
+                    labelText: l10n.t('model'),
                     prefixIcon: Icon(IconlyBold.edit, color: colors.subtext),
                   ),
                   onChanged: widget.carsController.updateSearch,
@@ -392,65 +377,142 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => widget.carsController.updateSearch(_selectedBrand),
-            child: const Text('Search Car'),
+            onPressed: () {
+              FocusScope.of(context).unfocus();
+              widget.carsController.updateSearch(_modelController.text.trim());
+            },
+            child: Text(l10n.t('search_car')),
           ),
         ],
       ),
     );
   }
 
-  void _showOverlay(Car car) {
-    final l10n = AppLocalizations.of(context);
+  Future<void> _selectCity(BuildContext context) async {
     final colors = AppColors.of(context);
-    showGeneralDialog<void>(
+    final l10n = AppLocalizations.of(context);
+    final selection = await showModalBottomSheet<String>(
       context: context,
-      barrierDismissible: true,
-      barrierLabel: 'preview',
-      transitionDuration: 240.ms,
-      pageBuilder: (_, __, ___) {
-        return GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            color: colors.background.withOpacity(0.82),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
-            child: Center(
-              child: Material(
-                borderRadius: BorderRadius.circular(24),
-                clipBehavior: Clip.antiAlias,
-                child: SizedBox(
-                  width: 360,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      HeroViewer(car: car),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            Text(car.title, style: Theme.of(context).textTheme.titleMedium),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                Navigator.pushNamed(context, '/details/${car.id}');
-                              },
-                              child: Text(l10n.t('view_details')),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+      backgroundColor: colors.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(l10n.t('all')),
+              onTap: () => Navigator.pop(context, 'all'),
             ),
-          ),
-        );
-      },
-      transitionBuilder: (_, animation, __, child) {
-        return FadeTransition(opacity: animation, child: ScaleTransition(scale: animation, child: child));
-      },
+            for (final city in _cityOptions)
+              ListTile(
+                title: Text(city),
+                onTap: () => Navigator.pop(context, city),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selection == null) return;
+    if (selection == 'all') {
+      setState(() => _selectedCity = 'All');
+      widget.carsController.updateFilter(
+        widget.carsController.filter.copyWith(clearCity: true),
+      );
+    } else {
+      setState(() => _selectedCity = selection);
+      widget.carsController.updateFilter(
+        widget.carsController.filter.copyWith(city: selection),
+      );
+    }
+  }
+
+  Future<void> _selectCondition(BuildContext context) async {
+    final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context);
+    final selection = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: colors.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(l10n.t('all')),
+              onTap: () => Navigator.pop(context, 'all'),
+            ),
+            ListTile(
+              title: Text(l10n.t('new')),
+              onTap: () => Navigator.pop(context, 'new'),
+            ),
+            ListTile(
+              title: Text(l10n.t('used')),
+              onTap: () => Navigator.pop(context, 'used'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selection == null) return;
+    final filter = widget.carsController.filter;
+    if (selection == 'all') {
+      setState(() => _selectedCondition = null);
+      widget.carsController.updateFilter(
+        filter.copyWith(condition: null, clearCondition: true),
+      );
+    } else {
+      final condition = selection == 'new' ? Condition.newCar : Condition.used;
+      setState(() => _selectedCondition = condition);
+      widget.carsController.updateFilter(
+        filter.copyWith(condition: condition),
+      );
+    }
+  }
+
+  Future<void> _selectBrand(BuildContext context) async {
+    final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context);
+    final selection = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: colors.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final brand in _brandOptions)
+              ListTile(
+                title: Text(brand == 'All' ? l10n.t('all') : brand),
+                onTap: () => Navigator.pop(context, brand),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selection != null) {
+      _applyBrand(selection);
+    }
+  }
+
+  void _applyBrand(String brand) {
+    setState(() => _selectedBrand = brand);
+    final filter = widget.carsController.filter;
+    if (brand == 'All') {
+      widget.carsController.updateFilter(
+        filter.copyWith(clearBrands: true),
+      );
+    } else {
+      widget.carsController.updateFilter(
+        filter.copyWith(brands: <String>{brand}),
+      );
+    }
+  }
+
+  void _showOverlay(Car car) {
+    showCarPreviewDialog(
+      context: context,
+      car: car,
+      onViewDetails: () => Navigator.pushNamed(context, '/details/${car.id}'),
     );
   }
 }
@@ -505,9 +567,10 @@ class _SearchField extends StatelessWidget {
 }
 
 class _BrandSelector extends StatefulWidget {
-  const _BrandSelector({required this.selected, required this.onSelected});
+  const _BrandSelector({required this.selected, required this.brands, required this.onSelected});
 
   final String selected;
+  final List<String> brands;
   final ValueChanged<String> onSelected;
 
   @override
@@ -515,34 +578,24 @@ class _BrandSelector extends StatefulWidget {
 }
 
 class _BrandSelectorState extends State<_BrandSelector> {
-  final List<String> _brands = const <String>[
-    'All',
-    'Tesla',
-    'BMW',
-    'Audi',
-    'Mercedes',
-    'Toyota',
-    'Hyundai',
-    'Ferrari',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SizedBox(
       height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index) {
-          final brand = _brands[index];
+          final brand = widget.brands[index];
           final isSelected = widget.selected == brand;
           return ChoiceChip(
-            label: Text(brand),
+            label: Text(brand == 'All' ? l10n.t('all') : brand),
             selected: isSelected,
             onSelected: (_) => widget.onSelected(brand),
           );
         },
         separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemCount: _brands.length,
+        itemCount: widget.brands.length,
       ),
     );
   }

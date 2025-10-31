@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -22,6 +23,8 @@ class _HeroViewerState extends State<HeroViewer> with SingleTickerProviderStateM
   late final AnimationController _zoomController;
   Animation<Matrix4>? _zoomAnimation;
   int _index = 0;
+  Timer? _autoTimer;
+  bool _autoRotate = false;
 
   @override
   void initState() {
@@ -34,6 +37,7 @@ class _HeroViewerState extends State<HeroViewer> with SingleTickerProviderStateM
   @override
   void dispose() {
     _zoomAnimation?.removeListener(_handleZoomAnimation);
+    _stopAutoRotate();
     _zoomController.dispose();
     _transformController.dispose();
     _controller.dispose();
@@ -67,11 +71,49 @@ class _HeroViewerState extends State<HeroViewer> with SingleTickerProviderStateM
     }
   }
 
+  void _toggleAutoRotate() {
+    if (_autoRotate) {
+      _stopAutoRotate();
+      setState(() => _autoRotate = false);
+    } else {
+      if (mounted) {
+        setState(() => _autoRotate = true);
+      }
+      _startAutoRotate();
+    }
+  }
+
+  void _startAutoRotate() {
+    _autoTimer?.cancel();
+    final frames = widget.car.spinset360?.isNotEmpty == true ? widget.car.spinset360! : widget.car.images;
+    if (frames.length <= 1) {
+      return;
+    }
+    _autoTimer = Timer.periodic(const Duration(milliseconds: 1400), (_) {
+      if (!mounted) return;
+      final next = (_index + 1) % frames.length;
+      _controller.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 360),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  void _stopAutoRotate() {
+    _autoTimer?.cancel();
+    _autoTimer = null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final frames = widget.car.spinset360?.isNotEmpty == true ? widget.car.spinset360! : widget.car.images;
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
+    final frameLabel = l10n
+        .t('frame_position')
+        .replaceAll('{index}', '${_index + 1}')
+        .replaceAll('{total}', '${frames.length}');
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -165,6 +207,60 @@ class _HeroViewerState extends State<HeroViewer> with SingleTickerProviderStateM
                     ),
                   ),
                   const SizedBox(height: 12),
+                  if (frames.length > 1)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            tooltip: _autoRotate ? l10n.t('pause_spin') : l10n.t('auto_spin'),
+                            onPressed: frames.length > 1 ? _toggleAutoRotate : null,
+                            icon: Icon(_autoRotate ? Icons.pause_circle_filled : Icons.play_circle_fill),
+                            color: colors.accent,
+                          ),
+                          Expanded(
+                            child: Semantics(
+                              label: l10n.t('frame_scrub'),
+                              child: Slider(
+                                value: _index.toDouble(),
+                                min: 0,
+                                max: (frames.length - 1).toDouble(),
+                                divisions: frames.length - 1,
+                                onChangeStart: (_) {
+                                  if (_autoRotate) {
+                                    _stopAutoRotate();
+                                    setState(() => _autoRotate = false);
+                                  }
+                                },
+                                onChanged: (value) {
+                                  final target = value.round();
+                                  if (target != _index) {
+                                    setState(() => _index = target);
+                                    _controller.animateToPage(
+                                      target,
+                                      duration: const Duration(milliseconds: 260),
+                                      curve: Curves.easeOut,
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (frames.length > 1)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          frameLabel,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.subtext),
+                        ),
+                      ),
+                    ),
+                  if (frames.length > 1) const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List<Widget>.generate(

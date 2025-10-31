@@ -11,6 +11,7 @@ import '../../../domain/enums/fuel_type.dart';
 import '../../../domain/enums/transmission.dart';
 import '../../widgets/car_card.dart';
 import '../../widgets/hero_viewer.dart';
+import '../../widgets/car_preview_dialog.dart';
 import '../../widgets/skeletons.dart';
 
 class CatalogScreen extends StatefulWidget {
@@ -613,59 +614,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
   }
 
   void _showOverlay(Car car, AppLocalizations l10n) {
-    showGeneralDialog<void>(
+    showCarPreviewDialog(
       context: context,
-      barrierDismissible: true,
-      barrierLabel: l10n.t('view_details'),
-      transitionDuration: 240.ms,
-      pageBuilder: (_, __, ___) {
-        return Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Semantics(
-              namesRoute: true,
-              label: l10n.t('car_preview'),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    HeroViewer(car: car),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(car.title, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
-                          const SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              Navigator.pushNamed(context, '/details/${car.id}');
-                            },
-                            child: Text(l10n.t('view_details')),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-      transitionBuilder: (_, animation, __, child) {
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(scale: animation, child: child),
-        );
-      },
+      car: car,
+      onViewDetails: () => Navigator.pushNamed(context, '/details/${car.id}'),
     );
   }
 

@@ -160,11 +160,29 @@ class CompareScreen extends StatelessWidget {
           DataCell(Text(spec.label)),
           for (var i = 0; i < 3; i++)
             DataCell(
-              Text(
-                values[i],
-                style: highlights.contains(i)
-                    ? TextStyle(color: highlightColor, fontWeight: FontWeight.bold)
-                    : null,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (highlights.contains(i) && spec.highlightType != _HighlightType.none)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        spec.highlightType == _HighlightType.higher
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                        size: 14,
+                        color: highlightColor,
+                      ),
+                    ),
+                  Flexible(
+                    child: Text(
+                      values[i],
+                      style: highlights.contains(i)
+                          ? TextStyle(color: highlightColor, fontWeight: FontWeight.bold)
+                          : null,
+                    ),
+                  ),
+                ],
               ),
             ),
         ],
