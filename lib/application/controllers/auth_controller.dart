@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_localizations.dart';
 import '../../domain/entities/user.dart';
 
 class AuthController extends ChangeNotifier {
@@ -36,63 +37,63 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  String? validateEmailOrPhone(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'This field is required';
+  String? validateEmailOrPhone(String? value, AppLocalizations l10n) {
+    if (value == null || value.trim().isEmpty) {
+      return l10n.t('required_field');
     }
     final emailRegex = RegExp(r'^.+@.+\..+$');
     final phoneRegex = RegExp(r'^[0-9]{8,}$');
-    if (emailRegex.hasMatch(value) || phoneRegex.hasMatch(value)) {
+    if (emailRegex.hasMatch(value.trim()) || phoneRegex.hasMatch(value.trim())) {
       return null;
     }
-    return 'Enter a valid email or phone';
+    return l10n.t('enter_valid_email_or_phone');
   }
 
-  String? validatePassword(String? value) {
-    if (value == null || value.length < 8) {
-      return 'Use 8+ characters';
+  String? validatePassword(String? value, AppLocalizations l10n) {
+    if (value == null || value.trim().length < 8) {
+      return l10n.t('password_short');
     }
     return null;
   }
 
-  String? validateSignupPassword(String? value) {
-    if (value == null || value.length < 8) {
-      return 'Use 8+ characters';
+  String? validateSignupPassword(String? value, AppLocalizations l10n) {
+    if (value == null || value.trim().length < 8) {
+      return l10n.t('password_short');
     }
     if (!RegExp(r'[0-9]').hasMatch(value)) {
-      return 'Add at least one number';
+      return l10n.t('password_number');
     }
     return null;
   }
 
-  String? validateName(String? value) {
+  String? validateName(String? value, AppLocalizations l10n) {
     if (value == null || value.trim().length < 2) {
-      return 'Enter a valid name';
+      return l10n.t('enter_valid_name');
     }
     return null;
   }
 
-  String? validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'This field is required';
+  String? validateEmail(String? value, AppLocalizations l10n) {
+    if (value == null || value.trim().isEmpty) {
+      return l10n.t('required_field');
     }
     final emailRegex = RegExp(r'^.+@.+\..+$');
-    if (!emailRegex.hasMatch(value)) {
-      return 'Invalid email';
+    if (!emailRegex.hasMatch(value.trim())) {
+      return l10n.t('invalid_email');
     }
     return null;
   }
 
-  String? validatePhone(String? value) {
-    if (value == null || !RegExp(r'^[0-9]{8,}$').hasMatch(value)) {
-      return 'Enter a valid phone';
+  String? validatePhone(String? value, AppLocalizations l10n) {
+    if (value == null || !RegExp(r'^[0-9]{8,}$').hasMatch(value.trim())) {
+      return l10n.t('enter_valid_phone');
     }
     return null;
   }
 
-  String? validateConfirmPassword(String? value) {
+  String? validateConfirmPassword(String? value, AppLocalizations l10n) {
     if (value != signupPassword) {
-      return 'Passwords do not match';
+      return l10n.t('password_mismatch');
     }
     return null;
   }

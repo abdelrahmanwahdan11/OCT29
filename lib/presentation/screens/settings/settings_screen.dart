@@ -107,6 +107,12 @@ class SettingsScreen extends StatelessWidget {
             title: Text(l10n.t('show_tutorial')),
             onTap: () => Navigator.pushNamed(context, '/tutorial'),
           ),
+          ListTile(
+            title: Text(l10n.t('next_phase_title')),
+            subtitle: Text(l10n.t('next_phase_subtitle')),
+            onTap: () => Navigator.pushNamed(context, '/next_phase'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+          ),
         ],
       ),
     );

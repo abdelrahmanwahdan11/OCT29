@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../application/controllers/cars_controller.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/car.dart';
 
 class CompareScreen extends StatelessWidget {
@@ -11,48 +12,82 @@ class CompareScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final compared = carsController.compareSet.ids
-        .map((id) => carsController.findById(id))
-        .whereType<Car>()
-        .toList();
-    final locale = Localizations.localeOf(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.t('compare'))),
-      body: RefreshIndicator(
-        onRefresh: carsController.refresh,
-        child: compared.isEmpty
-            ? ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-                  Center(child: Text(l10n.t('compare_empty'))),
-                ],
-              )
-            : ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                children: [
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      columns: [
-                        DataColumn(label: Text(l10n.t('spec'))),
-                        DataColumn(label: Text('${l10n.t('car')} 1')),
-                        DataColumn(label: Text('${l10n.t('car')} 2')),
-                        DataColumn(label: Text('${l10n.t('car')} 3')),
-                      ],
-                      rows: _buildRows(
-                        compared,
-                        l10n,
-                        locale,
-                        Theme.of(context).colorScheme.primary,
+    return AnimatedBuilder(
+      animation: carsController,
+      builder: (context, _) {
+        final l10n = AppLocalizations.of(context);
+        final colors = AppColors.of(context);
+        final compared = carsController.compareSet.ids
+            .map((id) => carsController.findById(id))
+            .whereType<Car>()
+            .toList();
+        final locale = Localizations.localeOf(context);
+        return Scaffold(
+          appBar: AppBar(title: Text(l10n.t('compare'))),
+          body: RefreshIndicator(
+            onRefresh: carsController.refresh,
+            child: compared.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                      Center(child: Text(l10n.t('compare_empty'))),
+                    ],
+                  )
+                : ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final car in compared)
+                            InputChip(
+                              label: Text(car.title),
+                              onDeleted: () {
+                                carsController.removeFromCompare(car.id);
+                              },
+                              deleteIcon: const Icon(Icons.close),
+                              backgroundColor: colors.card,
+                              deleteIconColor: colors.subtext,
+                            ),
+                          if (compared.isNotEmpty)
+                            ActionChip(
+                              label: Text(l10n.t('clear_all')),
+                              avatar: Icon(Icons.delete_sweep, color: colors.accent),
+                              onPressed: () {
+                                carsController.clearCompare();
+                              },
+                              backgroundColor: colors.cardAlt,
+                              labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.onSurface),
+                            ),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          headingTextStyle: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.onSurface, fontWeight: FontWeight.w600),
+                          columns: [
+                            DataColumn(label: Text(l10n.t('spec'))),
+                            DataColumn(label: Text('${l10n.t('car')} 1')),
+                            DataColumn(label: Text('${l10n.t('car')} 2')),
+                            DataColumn(label: Text('${l10n.t('car')} 3')),
+                          ],
+                          rows: _buildRows(
+                            compared,
+                            l10n,
+                            locale,
+                            colors.accent,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-      ),
+          ),
+        );
+      },
     );
   }
 

@@ -314,6 +314,18 @@ class CarsController extends ChangeNotifier {
     return success;
   }
 
+  Future<void> removeFromCompare(String id) async {
+    compareSet.remove(id);
+    await _repository.saveCompare(compareSet.ids);
+    notifyListeners();
+  }
+
+  Future<void> clearCompare() async {
+    compareSet.clear();
+    await _repository.saveCompare(compareSet.ids);
+    notifyListeners();
+  }
+
   Future<void> addCar(Car car) async {
     _allCars.removeWhere((existing) => existing.id == car.id);
     _allCars.insert(0, car);

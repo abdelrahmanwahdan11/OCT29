@@ -1,6 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../core/localization/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import '../../domain/entities/car.dart';
 
 class HeroViewer extends StatefulWidget {
@@ -12,122 +16,236 @@ class HeroViewer extends StatefulWidget {
   State<HeroViewer> createState() => _HeroViewerState();
 }
 
-class _HeroViewerState extends State<HeroViewer> {
+class _HeroViewerState extends State<HeroViewer> with SingleTickerProviderStateMixin {
   late final PageController _controller;
+  late final TransformationController _transformController;
+  late final AnimationController _zoomController;
+  Animation<Matrix4>? _zoomAnimation;
   int _index = 0;
 
   @override
   void initState() {
     super.initState();
     _controller = PageController();
+    _transformController = TransformationController();
+    _zoomController = AnimationController(vsync: this, duration: const Duration(milliseconds: 240));
   }
 
   @override
   void dispose() {
+    _zoomAnimation?.removeListener(_handleZoomAnimation);
+    _zoomController.dispose();
+    _transformController.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _animateTo(Matrix4 destination) {
+    _zoomAnimation?.removeListener(_handleZoomAnimation);
+    _zoomAnimation = Matrix4Tween(begin: _transformController.value, end: destination).animate(
+      CurvedAnimation(parent: _zoomController, curve: Curves.easeOutBack),
+    )
+      ..addListener(_handleZoomAnimation);
+    _zoomController.forward(from: 0);
+  }
+
+  void _handleZoomAnimation() {
+    _transformController.value = _zoomAnimation!.value;
+  }
+
+  void _handleDoubleTap(BoxConstraints constraints) {
+    final currentScale = _transformController.value.getMaxScaleOnAxis();
+    if (currentScale > 1.2) {
+      _animateTo(Matrix4.identity());
+    } else {
+      final focusX = constraints.maxWidth / 2;
+      final focusY = constraints.maxHeight / 2;
+      final zoomed = Matrix4.identity()
+        ..translate(-focusX * 0.2, -focusY * 0.2)
+        ..scale(1.6);
+      _animateTo(zoomed);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final frames = widget.car.spinset360?.isNotEmpty == true ? widget.car.spinset360! : widget.car.images;
-    return Hero(
-      tag: 'car-${widget.car.id}',
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          color: Theme.of(context).colorScheme.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-              blurRadius: 32,
-              offset: const Offset(0, 18),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: InteractiveViewer(
-                  minScale: 1,
-                  maxScale: 2.5,
-                  child: PageView.builder(
-                    controller: _controller,
-                    itemCount: frames.length,
-                    onPageChanged: (value) => setState(() => _index = value),
-                    itemBuilder: (context, index) {
-                      return Image.network(
-                        frames[index],
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, progress) {
-                          if (progress == null) return child;
-                          return const Center(child: CircularProgressIndicator());
-                        },
-                      );
-                    },
-                  ),
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewerHeight = math.min(math.max(constraints.maxWidth * 0.55, 220.0), 420.0);
+        final locale = Localizations.localeOf(context);
+        final fuelLabel = locale.languageCode == 'ar' ? widget.car.fuel.labelAr : widget.car.fuel.labelEn;
+        final transmissionLabel = locale.languageCode == 'ar' ? widget.car.transmission.labelAr : widget.car.transmission.labelEn;
+        return Hero(
+          tag: 'car-${widget.car.id}',
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              color: colors.surface,
+              boxShadow: [
+                BoxShadow(
+                  color: colors.accent.withOpacity(0.14),
+                  blurRadius: 32,
+                  offset: const Offset(0, 18),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List<Widget>.generate(
-                frames.length,
-                (index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 240),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  height: 6,
-                  width: _index == index ? 24 : 10,
-                  decoration: BoxDecoration(
-                    color: _index == index
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.primary.withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ).take(6).toList(),
-            ).animate().fadeIn(duration: 240.ms),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    widget.car.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${widget.car.year} • ${widget.car.fuel.labelEn} • ${widget.car.transmission.labelEn}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                        ),
+                  SizedBox(
+                    height: viewerHeight,
+                    child: LayoutBuilder(
+                      builder: (context, viewerConstraints) {
+                        return GestureDetector(
+                          onDoubleTap: () => _handleDoubleTap(viewerConstraints),
+                          child: Semantics(
+                            label: l10n.t('hero_viewer'),
+                            image: true,
+                            child: InteractiveViewer(
+                              transformationController: _transformController,
+                              onInteractionEnd: (_) {
+                                if (_transformController.value.getMaxScaleOnAxis() <= 1.1) {
+                                  _animateTo(Matrix4.identity());
+                                }
+                              },
+                              minScale: 1,
+                              maxScale: 2.8,
+                              child: PageView.builder(
+                                controller: _controller,
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: frames.length,
+                                onPageChanged: (value) {
+                                  setState(() => _index = value);
+                                  _animateTo(Matrix4.identity());
+                                },
+                                itemBuilder: (context, index) {
+                                  return Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Image.network(
+                                        frames[index],
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (context, child, progress) {
+                                          if (progress == null) return child;
+                                          return Center(
+                                            child: CircularProgressIndicator(color: colors.accent),
+                                          );
+                                        },
+                                      ),
+                                      Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: Container(
+                                          height: 96,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                colors.surface.withOpacity(0),
+                                                colors.surface.withOpacity(0.82),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${widget.car.currency} ${widget.car.price.toStringAsFixed(0)}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.primary),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List<Widget>.generate(
+                      math.min(frames.length, 6),
+                      (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 240),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        height: 6,
+                        width: _index == index ? 24 : 10,
+                        decoration: BoxDecoration(
+                          color: _index == index ? colors.accent : colors.accent.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.play_circle_fill_rounded, size: 28),
-                        color: Theme.of(context).colorScheme.primary,
-                      )
-                    ],
+                    ),
+                  ).animate().fadeIn(duration: 240.ms),
+                  const SizedBox(height: 16),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 220),
+                    child: Scrollbar(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.car.title,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: colors.onSurface,
+                                  ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${widget.car.year} • $fuelLabel • $transmissionLabel',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.subtext),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: colors.accent.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    '${widget.car.currency} ${widget.car.price.toStringAsFixed(0)}',
+                                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                          color: colors.accent,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    widget.car.description,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onSurface),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              l10n.t('hero_viewer_scroll_hint'),
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.subtext),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

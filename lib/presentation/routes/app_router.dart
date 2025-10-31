@@ -20,6 +20,7 @@ import '../screens/mycar/my_car_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/tutorial/tutorial_screen.dart';
+import '../screens/roadmap/next_phase_screen.dart';
 
 class AppRouter {
   AppRouter({
@@ -109,6 +110,11 @@ class AppRouter {
             settingsController: settingsController,
             savedSearchController: savedSearchController,
           ),
+          settings: settings,
+        );
+      case '/next_phase':
+        return MaterialPageRoute(
+          builder: (_) => const NextPhaseScreen(),
           settings: settings,
         );
       case '/tutorial':
