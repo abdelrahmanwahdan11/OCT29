@@ -8,6 +8,7 @@ import '../../../application/controllers/saved_search_controller.dart';
 import '../../../application/controllers/settings_controller.dart';
 import '../../../application/controllers/tutorial_controller.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../catalog/catalog_screen.dart';
 import '../compare/compare_screen.dart';
 import '../home/home_screen.dart';
@@ -49,6 +50,7 @@ class _HomeShellState extends State<HomeShell> {
         final l10n = AppLocalizations.of(context);
         final favoritesCount = widget.carsController.favoriteIds.length;
         final compareCount = widget.carsController.compareSet.ids.length;
+        final colors = AppColors.of(context);
         return Scaffold(
           body: IndexedStack(
             index: _index,
@@ -76,6 +78,19 @@ class _HomeShellState extends State<HomeShell> {
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _index,
             onTap: (value) => setState(() => _index = value),
+            backgroundColor: colors.card,
+            selectedItemColor: colors.accent,
+            unselectedItemColor: colors.subtext,
+            selectedLabelStyle: Theme.of(context)
+                .textTheme
+                .labelSmall
+                ?.copyWith(color: colors.accent, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: Theme.of(context)
+                .textTheme
+                .labelSmall
+                ?.copyWith(color: colors.subtext, fontWeight: FontWeight.w500),
+            showUnselectedLabels: true,
+            type: BottomNavigationBarType.fixed,
             items: [
               BottomNavigationBarItem(icon: const Icon(Icons.home_filled), label: l10n.t('home')),
               BottomNavigationBarItem(

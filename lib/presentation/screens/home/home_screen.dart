@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/car.dart';
 import '../../widgets/car_card.dart';
 import '../../widgets/hero_viewer.dart';
+import '../../widgets/skeletons.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -39,8 +40,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final colors = AppColors.of(context);
     final featured = widget.carsController.featuredController;
     return Scaffold(
+      backgroundColor: colors.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -58,18 +61,21 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Text(
                                 'Buy a Car Anytime, Anywhere',
-                                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                      color: colors.onBackground,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Explore immersive 360° spins and smart comparisons.',
-                                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7)),
+                                style: theme.textTheme.bodyMedium?.copyWith(color: colors.subtext),
                               ),
                             ],
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(IconlyLight.more_circle),
+                          icon: Icon(IconlyLight.more_circle, color: colors.onSurface),
                           onPressed: () => Navigator.pushNamed(context, '/settings'),
                         ),
                       ],
@@ -77,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 16),
                     _buildSearchCard(context),
                     const SizedBox(height: 24),
-                    Text(l10n.t('brands'), style: theme.textTheme.titleMedium),
+                    Text(l10n.t('brands'), style: theme.textTheme.titleMedium?.copyWith(color: colors.onSurface)),
                     const SizedBox(height: 12),
                     _BrandSelector(
                       selected: _selectedBrand,
@@ -101,7 +107,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   valueListenable: featured,
                   builder: (context, cars, _) {
                     if (cars.isEmpty) {
-                      return const Center(child: CircularProgressIndicator());
+                      return Center(
+                        child: CircularProgressIndicator(color: colors.accent),
+                      );
                     }
                     return SizedBox(
                       height: 320,
@@ -126,10 +134,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Featured 3D Spins', style: theme.textTheme.titleMedium),
+                    Text('Featured 3D Spins', style: theme.textTheme.titleMedium?.copyWith(color: colors.onSurface)),
                     TextButton(
                       onPressed: () => Navigator.pushNamed(context, '/catalog'),
-                      child: const Text('View all'),
+                      child: Text(
+                        'View all',
+                        style: theme.textTheme.labelLarge?.copyWith(color: colors.accent),
+                      ),
                     ),
                   ],
                 ),
@@ -138,6 +149,39 @@ class _HomeScreenState extends State<HomeScreen> {
             ValueListenableBuilder<List<Car>>(
               valueListenable: widget.carsController.listController,
               builder: (context, cars, _) {
+                if (cars.isEmpty) {
+                  if (widget.carsController.isLoading) {
+                    return SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          child: SkeletonCard(),
+                        ),
+                        childCount: 3,
+                      ),
+                    );
+                  }
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      child: Column(
+                        children: [
+                          Icon(Icons.directions_car_filled, color: colors.subtext, size: 48),
+                          const SizedBox(height: 16),
+                          Text(
+                            l10n.t('no_cars_found'),
+                            style: theme.textTheme.titleMedium?.copyWith(color: colors.onSurface),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.t('adjust_filters'),
+                            style: theme.textTheme.bodySmall?.copyWith(color: colors.subtext),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
                 return SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -177,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           l10n.t('recent_views'),
-                          style: theme.textTheme.titleMedium,
+                          style: theme.textTheme.titleMedium?.copyWith(color: colors.onSurface),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
@@ -192,7 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: Container(
                                   width: 160,
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.surface,
+                                    color: colors.card,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   padding: const EdgeInsets.all(12),
@@ -206,9 +250,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      Text(car.title, style: theme.textTheme.labelLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
-                                      Text('${car.currency} ${car.price.toStringAsFixed(0)}',
-                                          style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary)),
+                                      Text(
+                                        car.title,
+                                        style: theme.textTheme.labelLarge?.copyWith(color: colors.onSurface),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        '${car.currency} ${car.price.toStringAsFixed(0)}',
+                                        style: theme.textTheme.labelMedium?.copyWith(color: colors.accent),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -233,13 +284,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSearchCard(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AppColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: colors.card,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.15),
+            color: colors.accent.withOpacity(0.18),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -260,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     final cities = <String>['Dubai', 'Riyadh', 'Abu Dhabi', 'Jeddah'];
                     final selected = await showModalBottomSheet<String>(
                       context: context,
-                      backgroundColor: theme.colorScheme.surface,
+                      backgroundColor: colors.card,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                       builder: (_) => ListView(
                         shrinkWrap: true,
@@ -293,6 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     final options = <String>['All', 'New', 'Used'];
                     final selected = await showModalBottomSheet<String>(
                       context: context,
+                      backgroundColor: colors.card,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                       builder: (_) => Column(
                         mainAxisSize: MainAxisSize.min,
@@ -328,7 +381,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: TextFormField(
-                  decoration: const InputDecoration(labelText: 'Model', prefixIcon: Icon(IconlyBold.edit)),
+                  decoration: InputDecoration(
+                    labelText: 'Model',
+                    prefixIcon: Icon(IconlyBold.edit, color: colors.subtext),
+                  ),
                   onChanged: widget.carsController.updateSearch,
                 ),
               ),
@@ -414,13 +470,13 @@ class _SearchField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: AppColors.of(context).cardAlt,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Theme.of(context).dividerColor),
+          border: Border.all(color: AppColors.of(context).divider),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20),
+            Icon(icon, size: 20, color: AppColors.of(context).subtext),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -429,15 +485,18 @@ class _SearchField extends StatelessWidget {
                   Text(
                     label,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          color: AppColors.of(context).subtext,
                         ),
                   ),
                   const SizedBox(height: 4),
-                  Text(value, style: Theme.of(context).textTheme.bodyMedium),
+                  Text(
+                    value,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.of(context).onSurface),
+                  ),
                 ],
               ),
             ),
-            const Icon(IconlyLight.arrow_down_2, size: 18),
+            Icon(IconlyLight.arrow_down_2, size: 18, color: AppColors.of(context).subtext),
           ],
         ),
       ),

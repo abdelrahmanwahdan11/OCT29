@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:iconly/iconly.dart';
 
 import '../../core/localization/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import '../../domain/entities/car.dart';
 
 class CarCard extends StatefulWidget {
@@ -38,16 +39,16 @@ class _CarCardState extends State<CarCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final locale = Localizations.localeOf(context);
+    final colors = AppColors.of(context);
     return AnimatedContainer(
       duration: 240.ms,
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: colors.card,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.08),
+            color: colors.accent.withOpacity(0.14),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -73,7 +74,8 @@ class _CarCardState extends State<CarCard> {
             ),
           ),
           const SizedBox(height: 12),
-          Expanded(
+          SizedBox(
+            height: 132,
             child: AnimatedSwitcher(
               duration: 420.ms,
               transitionBuilder: (child, animation) {
@@ -91,13 +93,13 @@ class _CarCardState extends State<CarCard> {
                   },
                 );
               },
-              child: _showBack ? _buildBack(theme, l10n) : _buildFront(theme, l10n),
+              child: _showBack ? _buildBack(theme, l10n, colors) : _buildFront(theme, l10n, colors),
             ),
           ),
           const SizedBox(height: 12),
           Text(
             l10n.t('flip_for_specs'),
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+            style: theme.textTheme.labelSmall?.copyWith(color: colors.subtext),
           ),
           const SizedBox(height: 8),
           Row(
@@ -124,7 +126,7 @@ class _CarCardState extends State<CarCard> {
               IconButton(
                 onPressed: widget.onFavorite,
                 icon: Icon(widget.isFavorite ? IconlyBold.heart : IconlyLight.heart),
-                color: widget.isFavorite ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                color: widget.isFavorite ? colors.accent : colors.onSurface,
                 tooltip: l10n.t('favorites'),
               ),
             ],
@@ -138,7 +140,7 @@ class _CarCardState extends State<CarCard> {
     );
   }
 
-  Widget _buildFront(ThemeData theme, AppLocalizations l10n) {
+  Widget _buildFront(ThemeData theme, AppLocalizations l10n, AppColors colors) {
     final car = widget.car;
     final locale = Localizations.localeOf(context);
     return Container(
@@ -152,29 +154,29 @@ class _CarCardState extends State<CarCard> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  color: colors.accent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
                   _formatCurrency(car.price, car.currency),
-                  style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+                  style: theme.textTheme.labelMedium?.copyWith(color: colors.accent, fontWeight: FontWeight.bold),
                 ),
               ),
               const Spacer(),
-              Icon(IconlyLight.time_circle, size: 18, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+              Icon(IconlyLight.time_circle, size: 18, color: colors.subtext),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             car.title,
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: colors.onSurface),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Text(
             '${car.year} • ${car.mileageKm} km • ${locale.languageCode == 'ar' ? car.fuel.labelAr : car.fuel.labelEn}',
-            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+            style: theme.textTheme.bodySmall?.copyWith(color: colors.subtext),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -191,7 +193,7 @@ class _CarCardState extends State<CarCard> {
     );
   }
 
-  Widget _buildBack(ThemeData theme, AppLocalizations l10n) {
+  Widget _buildBack(ThemeData theme, AppLocalizations l10n, AppColors colors) {
     final car = widget.car;
     final locale = Localizations.localeOf(context);
     return Container(
@@ -200,7 +202,7 @@ class _CarCardState extends State<CarCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.t('specifications'), style: theme.textTheme.titleMedium),
+          Text(l10n.t('specifications'), style: theme.textTheme.titleMedium?.copyWith(color: colors.onSurface)),
           const SizedBox(height: 8),
           _SpecRow(title: l10n.t('fuel'), value: locale.languageCode == 'ar' ? car.fuel.labelAr : car.fuel.labelEn),
           _SpecRow(title: l10n.t('transmission'), value: locale.languageCode == 'ar' ? car.transmission.labelAr : car.transmission.labelEn),
@@ -234,13 +236,18 @@ class _SpecChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2),
+        color: colors.cardAlt,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(label, style: Theme.of(context).textTheme.labelMedium),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(color: colors.onSurface),
+      ),
     );
   }
 }
@@ -253,13 +260,20 @@ class _SpecRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: Theme.of(context).textTheme.bodySmall),
-          Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          Text(title, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.subtext)),
+          Text(
+            value,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w600, color: colors.onSurface),
+          ),
         ],
       ),
     );

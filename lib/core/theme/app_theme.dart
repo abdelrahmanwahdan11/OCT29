@@ -301,6 +301,17 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
       ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: palette.card,
+        selectedItemColor: accent,
+        unselectedItemColor: palette.subtext,
+        selectedLabelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: accent),
+        unselectedLabelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: palette.subtext),
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        selectedIconTheme: IconThemeData(color: accent),
+        unselectedIconTheme: IconThemeData(color: palette.subtext),
+      ),
       extensions: <ThemeExtension<dynamic>>[
         AppColors.fromPalette(palette, accent: accent),
       ],
