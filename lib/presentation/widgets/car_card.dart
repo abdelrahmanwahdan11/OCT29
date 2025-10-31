@@ -40,103 +40,154 @@ class _CarCardState extends State<CarCard> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
-    return AnimatedContainer(
-      duration: 240.ms,
-      curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: colors.accent.withOpacity(0.14),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: widget.onImageTap,
-            child: Semantics(
-              label: '${widget.car.brand} ${widget.car.model}',
-              image: true,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.network(
-                  widget.car.images.first,
-                  fit: BoxFit.cover,
-                  height: 160,
-                  width: double.infinity,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 132,
-            child: AnimatedSwitcher(
-              duration: 420.ms,
-              transitionBuilder: (child, animation) {
-                final rotate = Tween<double>(begin: _showBack ? -1 : 1, end: 0).animate(animation);
-                return AnimatedBuilder(
-                  animation: rotate,
-                  child: child,
-                  builder: (context, child) {
-                    final value = rotate.value;
-                    return Transform(
-                      transform: Matrix4.identity()..setEntry(3, 2, 0.001)..rotateY(value * 1.57),
-                      alignment: Alignment.center,
-                      child: child,
-                    );
-                  },
-                );
-              },
-              child: _showBack ? _buildBack(theme, l10n, colors) : _buildFront(theme, l10n, colors),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            l10n.t('flip_for_specs'),
-            style: theme.textTheme.labelSmall?.copyWith(color: colors.subtext),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: widget.onDetails,
-                  child: Text(l10n.t('view_details')),
-                ),
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                onPressed: () async {
-                  final added = await widget.onCompare();
-                  if (!added && mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.t('compare_full'))),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.compare_arrows),
-                tooltip: l10n.t('add_to_compare'),
-              ),
-              IconButton(
-                onPressed: widget.onFavorite,
-                icon: Icon(widget.isFavorite ? IconlyBold.heart : IconlyLight.heart),
-                color: widget.isFavorite ? colors.accent : colors.onSurface,
-                tooltip: l10n.t('favorites'),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 280;
+        final double imageHeight = isCompact ? 140 : 160;
+        final double infoHeight = isCompact ? 148 : 132;
+        final EdgeInsets contentPadding = EdgeInsets.all(isCompact ? 12 : 16);
+
+        return AnimatedContainer(
+          duration: 240.ms,
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: colors.card,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: colors.accent.withOpacity(0.14),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
-          TextButton(
-            onPressed: _toggleSide,
-            child: Text(_showBack ? l10n.t('show_overview') : l10n.t('show_specs')),
+          padding: contentPadding,
+          child: Column(
+            children: [
+              GestureDetector(
+                onTap: widget.onImageTap,
+                child: Semantics(
+                  label: '${widget.car.brand} ${widget.car.model}',
+                  image: true,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Image.network(
+                        widget.car.images.first,
+                        fit: BoxFit.cover,
+                        height: imageHeight,
+                        width: double.infinity,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: infoHeight,
+                child: AnimatedSwitcher(
+                  duration: 420.ms,
+                  transitionBuilder: (child, animation) {
+                    final rotate = Tween<double>(begin: _showBack ? -1 : 1, end: 0).animate(animation);
+                    return AnimatedBuilder(
+                      animation: rotate,
+                      child: child,
+                      builder: (context, child) {
+                        final value = rotate.value;
+                        return Transform(
+                          transform: Matrix4.identity()
+                            ..setEntry(3, 2, 0.001)
+                            ..rotateY(value * 1.57),
+                          alignment: Alignment.center,
+                          child: child,
+                        );
+                      },
+                    );
+                  },
+                  child: _showBack ? _buildBack(theme, l10n, colors) : _buildFront(theme, l10n, colors),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.t('flip_for_specs'),
+                style: theme.textTheme.labelSmall?.copyWith(color: colors.subtext),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              if (isCompact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ElevatedButton(
+                      onPressed: widget.onDetails,
+                      style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      child: Text(l10n.t('view_details')),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: () async {
+                            final added = await widget.onCompare();
+                            if (!added && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(l10n.t('compare_full'))),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.compare_arrows),
+                          tooltip: l10n.t('add_to_compare'),
+                        ),
+                        IconButton(
+                          onPressed: widget.onFavorite,
+                          icon: Icon(widget.isFavorite ? IconlyBold.heart : IconlyLight.heart),
+                          color: widget.isFavorite ? colors.accent : colors.onSurface,
+                          tooltip: l10n.t('favorites'),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: widget.onDetails,
+                        child: Text(l10n.t('view_details')),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    IconButton(
+                      onPressed: () async {
+                        final added = await widget.onCompare();
+                        if (!added && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.t('compare_full'))),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.compare_arrows),
+                      tooltip: l10n.t('add_to_compare'),
+                    ),
+                    IconButton(
+                      onPressed: widget.onFavorite,
+                      icon: Icon(widget.isFavorite ? IconlyBold.heart : IconlyLight.heart),
+                      color: widget.isFavorite ? colors.accent : colors.onSurface,
+                      tooltip: l10n.t('favorites'),
+                    ),
+                  ],
+                ),
+              TextButton(
+                onPressed: _toggleSide,
+                child: Text(_showBack ? l10n.t('show_overview') : l10n.t('show_specs')),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

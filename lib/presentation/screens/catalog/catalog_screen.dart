@@ -105,46 +105,81 @@ class _CatalogScreenState extends State<CatalogScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final bool compact = constraints.maxWidth < 640;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Semantics(
-                              label: l10n.t('search'),
-                              textField: true,
-                              child: TextField(
-                                controller: _searchController,
-                                decoration: InputDecoration(
-                                  prefixIcon: const Icon(Icons.search),
-                                  hintText: l10n.t('search'),
+                          if (compact)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Semantics(
+                                  label: l10n.t('search'),
+                                  textField: true,
+                                  child: TextField(
+                                    controller: _searchController,
+                                    decoration: InputDecoration(
+                                      prefixIcon: const Icon(Icons.search),
+                                      hintText: l10n.t('search'),
+                                    ),
+                                    onChanged: widget.carsController.updateSearch,
+                                    textInputAction: TextInputAction.search,
+                                  ),
                                 ),
-                                onChanged: widget.carsController.updateSearch,
-                                textInputAction: TextInputAction.search,
-                              ),
+                                const SizedBox(height: 12),
+                                FilledButton.icon(
+                                  onPressed: _openFilterSheet,
+                                  icon: const Icon(Icons.filter_alt),
+                                  style: FilledButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(52),
+                                  ),
+                                  label: Text(l10n.t('filter')),
+                                ),
+                              ],
+                            )
+                          else
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Semantics(
+                                    label: l10n.t('search'),
+                                    textField: true,
+                                    child: TextField(
+                                      controller: _searchController,
+                                      decoration: InputDecoration(
+                                        prefixIcon: const Icon(Icons.search),
+                                        hintText: l10n.t('search'),
+                                      ),
+                                      onChanged: widget.carsController.updateSearch,
+                                      textInputAction: TextInputAction.search,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                FilledButton.icon(
+                                  onPressed: _openFilterSheet,
+                                  icon: const Icon(Icons.filter_alt),
+                                  label: Text(l10n.t('filter')),
+                                ),
+                              ],
+                            ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              icon: const Icon(Icons.bookmark_add_outlined),
+                              label: Text(l10n.t('save_search')),
+                              onPressed: () => _onSaveSearch(context, l10n),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          FilledButton.icon(
-                            onPressed: _openFilterSheet,
-                            icon: const Icon(Icons.filter_alt),
-                            label: Text(l10n.t('filter')),
-                          ),
+                          const SizedBox(height: 8),
+                          _buildActiveFilterRow(context, l10n),
                         ],
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          icon: const Icon(Icons.bookmark_add_outlined),
-                          label: Text(l10n.t('save_search')),
-                          onPressed: () => _onSaveSearch(context, l10n),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildActiveFilterRow(context, l10n),
-                    ],
+                      );
+                    },
                   ),
                 ),
                 Expanded(
@@ -232,30 +267,47 @@ class _CatalogScreenState extends State<CatalogScreen> {
   }
 
   Widget _buildGrid(List<Car> cars, bool isLoadingMore, AppLocalizations l10n) {
-    return GridView.builder(
-      controller: widget.carsController.scrollController,
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-      physics: const AlwaysScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.78,
-      ),
-      itemCount: isLoadingMore ? cars.length + 1 : cars.length,
-      itemBuilder: (context, index) {
-        if (index >= cars.length) {
-          return const Center(child: CircularProgressIndicator());
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        final int crossAxisCount;
+        final double aspectRatio;
+        if (width >= 1200) {
+          crossAxisCount = 3;
+          aspectRatio = 0.88;
+        } else if (width >= 840) {
+          crossAxisCount = 2;
+          aspectRatio = 0.82;
+        } else {
+          crossAxisCount = 1;
+          aspectRatio = 0.74;
         }
-        final car = cars[index];
-        return CarCard(
-          car: car,
-          onFavorite: () => widget.carsController.toggleFavorite(car.id),
-          isFavorite: widget.carsController.isFavorite(car.id),
-          onCompare: () => widget.carsController.toggleCompare(car.id),
-          onDetails: () => Navigator.pushNamed(context, '/details/${car.id}'),
-          onImageTap: () => _showOverlay(car, l10n),
-        ).animate().fade(duration: 280.ms, delay: (index * 24).ms).scale(begin: const Offset(0.98, 0.98));
+        return GridView.builder(
+          controller: widget.carsController.scrollController,
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          physics: const AlwaysScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: aspectRatio,
+          ),
+          itemCount: isLoadingMore ? cars.length + 1 : cars.length,
+          itemBuilder: (context, index) {
+            if (index >= cars.length) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final car = cars[index];
+            return CarCard(
+              car: car,
+              onFavorite: () => widget.carsController.toggleFavorite(car.id),
+              isFavorite: widget.carsController.isFavorite(car.id),
+              onCompare: () => widget.carsController.toggleCompare(car.id),
+              onDetails: () => Navigator.pushNamed(context, '/details/${car.id}'),
+              onImageTap: () => _showOverlay(car, l10n),
+            ).animate().fade(duration: 280.ms, delay: (index * 24).ms).scale(begin: const Offset(0.98, 0.98));
+          },
+        );
       },
     );
   }

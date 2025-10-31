@@ -5,10 +5,11 @@ import '../../application/controllers/auth_controller.dart';
 import '../../application/controllers/cars_controller.dart';
 import '../../application/controllers/my_car_controller.dart';
 import '../../application/controllers/recent_views_controller.dart';
-import '../../application/controllers/saved_search_controller.dart';
 import '../../application/controllers/review_controller.dart';
+import '../../application/controllers/saved_search_controller.dart';
 import '../../application/controllers/settings_controller.dart';
 import '../../application/controllers/tutorial_controller.dart';
+import '../../core/localization/app_localizations.dart';
 import '../screens/auth/forgot_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/signup_screen.dart';
@@ -19,10 +20,10 @@ import '../screens/favorites/favorites_screen.dart';
 import '../screens/home/home_shell.dart';
 import '../screens/mycar/my_car_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/review/launch_review_screen.dart';
+import '../screens/roadmap/next_phase_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/tutorial/tutorial_screen.dart';
-import '../screens/roadmap/next_phase_screen.dart';
-import '../screens/review/launch_review_screen.dart';
 
 class AppRouter {
   AppRouter({
@@ -48,11 +49,15 @@ class AppRouter {
   final ReviewController reviewController;
 
   Route<dynamic>? onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
+    final RouteSettings effectiveSettings = _applyGuards(settings);
+    final String routeName = effectiveSettings.name ?? '/';
+
+    switch (routeName) {
       case '/':
       case '/home':
-        return MaterialPageRoute(
-          builder: (_) => HomeShell(
+        return _buildRoute(
+          effectiveSettings,
+          HomeShell(
             appController: appController,
             carsController: carsController,
             myCarController: myCarController,
@@ -61,92 +66,193 @@ class AppRouter {
             savedSearchController: savedSearchController,
             recentViewsController: recentViewsController,
           ),
-          settings: settings,
         );
       case '/onboarding':
-        return MaterialPageRoute(
-          builder: (_) => OnboardingScreen(appController: appController),
-          settings: settings,
+        return _buildRoute(
+          effectiveSettings,
+          OnboardingScreen(appController: appController),
         );
       case '/auth/login':
-        return MaterialPageRoute(
-          builder: (_) => LoginScreen(appController: appController, authController: authController),
-          settings: settings,
+        return _buildRoute(
+          effectiveSettings,
+          LoginScreen(appController: appController, authController: authController),
         );
       case '/auth/signup':
-        return MaterialPageRoute(
-          builder: (_) => SignupScreen(authController: authController),
-          settings: settings,
+        return _buildRoute(
+          effectiveSettings,
+          SignupScreen(authController: authController),
         );
       case '/auth/forgot':
-        return MaterialPageRoute(
-          builder: (_) => ForgotScreen(authController: authController),
-          settings: settings,
+        return _buildRoute(
+          effectiveSettings,
+          ForgotScreen(authController: authController),
         );
       case '/catalog':
-        return MaterialPageRoute(
-          builder: (_) => CatalogScreen(
+        return _buildRoute(
+          effectiveSettings,
+          CatalogScreen(
             carsController: carsController,
             savedSearchController: savedSearchController,
             settingsController: settingsController,
           ),
-          settings: settings,
         );
       case '/compare':
-        return MaterialPageRoute(
-          builder: (_) => CompareScreen(carsController: carsController),
-          settings: settings,
+        return _buildRoute(
+          effectiveSettings,
+          CompareScreen(carsController: carsController),
         );
       case '/favorites':
-        return MaterialPageRoute(
-          builder: (_) => FavoritesScreen(carsController: carsController),
-          settings: settings,
+        return _buildRoute(
+          effectiveSettings,
+          FavoritesScreen(carsController: carsController),
         );
       case '/mycar':
-        return MaterialPageRoute(
-          builder: (_) => MyCarScreen(controller: myCarController, carsController: carsController),
-          settings: settings,
+        return _buildRoute(
+          effectiveSettings,
+          MyCarScreen(controller: myCarController, carsController: carsController),
         );
       case '/settings':
-        return MaterialPageRoute(
-          builder: (_) => SettingsScreen(
+        return _buildRoute(
+          effectiveSettings,
+          SettingsScreen(
             appController: appController,
             settingsController: settingsController,
             savedSearchController: savedSearchController,
             reviewController: reviewController,
           ),
-          settings: settings,
         );
       case '/next_phase':
-        return MaterialPageRoute(
-          builder: (_) => const NextPhaseScreen(),
-          settings: settings,
+        return _buildRoute(
+          effectiveSettings,
+          const NextPhaseScreen(),
         );
       case '/tutorial':
-        return MaterialPageRoute(
-          builder: (_) => TutorialScreen(controller: tutorialController),
-          settings: settings,
+        return _buildRoute(
+          effectiveSettings,
+          TutorialScreen(controller: tutorialController),
         );
       case '/launch_review':
-        return MaterialPageRoute(
-          builder: (_) => LaunchReviewScreen(reviewController: reviewController),
-          settings: settings,
+        return _buildRoute(
+          effectiveSettings,
+          LaunchReviewScreen(reviewController: reviewController),
         );
       default:
-        if (settings.name != null && settings.name!.startsWith('/details/')) {
-          final carId = settings.name!.split('/').last;
-          final car = carsController.findById(carId) ??
-              (carsController.visibleCars.isNotEmpty ? carsController.visibleCars.first : carsController.listController.value.first);
-          return MaterialPageRoute(
-            builder: (_) => DetailsScreen(
+        if (routeName.startsWith('/details/')) {
+          final String carId = routeName.substring('/details/'.length);
+          final car = carsController.findById(carId);
+          if (car == null) {
+            return _buildRoute(
+              effectiveSettings,
+              _MissingCarScreen(
+                routeName: routeName,
+              ),
+            );
+          }
+          return _buildRoute(
+            effectiveSettings,
+            DetailsScreen(
               carsController: carsController,
               car: car,
               recentViewsController: recentViewsController,
             ),
-            settings: settings,
           );
         }
         return null;
     }
+  }
+
+  RouteSettings _applyGuards(RouteSettings settings) {
+    final String requested = settings.name ?? '/';
+    const Set<String> publicRoutes = <String>{
+      '/onboarding',
+      '/auth/login',
+      '/auth/signup',
+      '/auth/forgot',
+    };
+    final bool isAuthRoute = publicRoutes.contains(requested);
+
+    if (!appController.hasSeenOnboarding && requested != '/onboarding') {
+      return const RouteSettings(name: '/onboarding');
+    }
+
+    final bool isSignedIn = appController.user != null;
+    if (!isSignedIn && !isAuthRoute) {
+      return const RouteSettings(name: '/auth/login');
+    }
+
+    if (isSignedIn && isAuthRoute) {
+      return const RouteSettings(name: '/home');
+    }
+
+    if (requested == '/') {
+      return const RouteSettings(name: '/home');
+    }
+
+    return settings;
+  }
+
+  PageRouteBuilder<dynamic> _buildRoute(RouteSettings settings, Widget child) {
+    return PageRouteBuilder<dynamic>(
+      settings: settings,
+      transitionDuration: const Duration(milliseconds: 280),
+      reverseTransitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (_, __, ___) => child,
+      transitionsBuilder: (context, animation, secondaryAnimation, routeChild) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(curved),
+            child: routeChild,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MissingCarScreen extends StatelessWidget {
+  const _MissingCarScreen({required this.routeName});
+
+  final String routeName;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.t('catalog'))),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.directions_car_filled_outlined, size: 56, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 16),
+              Text(
+                l10n.t('car_not_found'),
+                style: Theme.of(context).textTheme.titleMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                routeName,
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pushReplacementNamed('/catalog'),
+                child: Text(l10n.t('browse_catalog')),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

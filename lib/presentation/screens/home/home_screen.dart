@@ -357,7 +357,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSearchCard(BuildContext context) {
-    final theme = Theme.of(context);
     final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context);
     final conditionLabel = _selectedCondition == null
@@ -367,77 +366,128 @@ class _HomeScreenState extends State<HomeScreen> {
             : l10n.t('used');
     final brandLabel = _selectedBrand == 'All' ? l10n.t('all') : _selectedBrand;
     final cityLabel = _selectedCity == 'All' ? l10n.t('all') : _selectedCity;
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: colors.accent.withOpacity(0.18),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _SearchField(
-                  label: l10n.t('city'),
-                  value: cityLabel,
-                  icon: IconlyBold.location,
-                  onTap: () => _selectCity(context),
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool compact = constraints.maxWidth < 560;
+        return Container(
+          decoration: BoxDecoration(
+            color: colors.card,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: colors.accent.withOpacity(0.18),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _SearchField(
-                  label: l10n.t('condition'),
-                  value: conditionLabel,
-                  icon: IconlyBold.category,
-                  onTap: () => _selectCondition(context),
+            ],
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (compact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SearchField(
+                      label: l10n.t('city'),
+                      value: cityLabel,
+                      icon: IconlyBold.location,
+                      onTap: () => _selectCity(context),
+                    ),
+                    const SizedBox(height: 12),
+                    _SearchField(
+                      label: l10n.t('condition'),
+                      value: conditionLabel,
+                      icon: IconlyBold.category,
+                      onTap: () => _selectCondition(context),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: _SearchField(
+                        label: l10n.t('city'),
+                        value: cityLabel,
+                        icon: IconlyBold.location,
+                        onTap: () => _selectCity(context),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _SearchField(
+                        label: l10n.t('condition'),
+                        value: conditionLabel,
+                        icon: IconlyBold.category,
+                        onTap: () => _selectCondition(context),
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 12),
+              if (compact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SearchField(
+                      label: l10n.t('brand'),
+                      value: brandLabel,
+                      icon: IconlyBold.ticket,
+                      onTap: () => _selectBrand(context),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _modelController,
+                      decoration: InputDecoration(
+                        labelText: l10n.t('model'),
+                        prefixIcon: Icon(IconlyBold.edit, color: colors.subtext),
+                      ),
+                      onChanged: widget.carsController.updateSearch,
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: _SearchField(
+                        label: l10n.t('brand'),
+                        value: brandLabel,
+                        icon: IconlyBold.ticket,
+                        onTap: () => _selectBrand(context),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _modelController,
+                        decoration: InputDecoration(
+                          labelText: l10n.t('model'),
+                          prefixIcon: Icon(IconlyBold.edit, color: colors.subtext),
+                        ),
+                        onChanged: widget.carsController.updateSearch,
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    FocusScope.of(context).unfocus();
+                    widget.carsController.updateSearch(_modelController.text.trim());
+                  },
+                  style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+                  child: Text(l10n.t('search_car')),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _SearchField(
-                  label: l10n.t('brand'),
-                  value: brandLabel,
-                  icon: IconlyBold.ticket,
-                  onTap: () => _selectBrand(context),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  controller: _modelController,
-                  decoration: InputDecoration(
-                    labelText: l10n.t('model'),
-                    prefixIcon: Icon(IconlyBold.edit, color: colors.subtext),
-                  ),
-                  onChanged: widget.carsController.updateSearch,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              FocusScope.of(context).unfocus();
-              widget.carsController.updateSearch(_modelController.text.trim());
-            },
-            child: Text(l10n.t('search_car')),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
