@@ -1,0 +1,31 @@
+[
+  {
+    "id": "c001",
+    "make": "Toyota",
+    "model": "Corolla",
+    "trim": "SE",
+    "year": 2021,
+    "price": 14500,
+    "currency": "USD",
+    "condition": "used",
+    "mileage_km": 38000,
+    "transmission": "auto",
+    "fuel": "gasoline",
+    "body_type": "sedan",
+    "drive": "fwd",
+    "color": "white",
+    "images": [
+      "https://picsum.photos/id/1011/800/500",
+      "https://picsum.photos/id/1012/800/500"
+    ],
+    "images360": [
+      "https://example.com/360/c001/frame_01.jpg",
+      "https://example.com/360/c001/frame_02.jpg"
+    ],
+    "location": "Ramallah",
+    "posted_at": "2025-10-25T10:00:00Z",
+    "seller_type": "individual",
+    "specs": { "engine_cc": 1800, "hp": 139, "doors": 4, "seats": 5 },
+    "notes": "Well maintained, single owner"
+  }
+]
