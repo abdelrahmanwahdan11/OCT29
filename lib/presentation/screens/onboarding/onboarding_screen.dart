@@ -3,10 +3,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:iconly/iconly.dart';
 
 import '../../../application/controllers/app_controller.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
+import '../auth/widgets/auth_side_panel.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, required this.appController});
@@ -44,6 +46,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       subtitleAr: 'ثيم داكن ولون أساسي مخصص',
       image: 'https://images.unsplash.com/photo-1494972688394-4cc796f9e4c1',
     ),
+  ];
+
+  static const List<List<_OnboardingFeature>> _featureMatrix = <List<_OnboardingFeature>>[
+    <_OnboardingFeature>[
+      _OnboardingFeature(icon: IconlyBold.category, labelKey: 'auth_feature_3d'),
+      _OnboardingFeature(icon: IconlyBold.chart, labelKey: 'auth_feature_compare'),
+      _OnboardingFeature(icon: IconlyBold.setting, labelKey: 'auth_feature_customize'),
+    ],
+    <_OnboardingFeature>[
+      _OnboardingFeature(icon: IconlyBold.buy, labelKey: 'auth_feature_sell'),
+      _OnboardingFeature(icon: IconlyBold.document, labelKey: 'list_for_sale'),
+      _OnboardingFeature(icon: IconlyBold.time_circle, labelKey: 'add_offer_watch'),
+    ],
+    <_OnboardingFeature>[
+      _OnboardingFeature(icon: IconlyBold.setting, labelKey: 'auth_feature_customize'),
+      _OnboardingFeature(icon: IconlyBold.call, labelKey: 'show_tutorial'),
+      _OnboardingFeature(icon: IconlyBold.more_circle, labelKey: 'next_phase_heading'),
+    ],
   ];
 
   @override
@@ -84,6 +104,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           builder: (context, constraints) {
             final maxWidth = constraints.maxWidth;
             final cardHeight = math.min(constraints.maxHeight * 0.55, 440.0);
+            final features = _featureMatrix[_index];
             return Column(
               children: [
                 Expanded(
@@ -100,6 +121,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                           ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 60,
+                        right: 40,
+                        child: Transform.rotate(
+                          angle: math.pi / 8,
+                          child: Container(
+                            width: 140,
+                            height: 140,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(48),
+                              border: Border.all(color: colors.accent.withOpacity(0.2), width: 2),
+                              gradient: RadialGradient(
+                                colors: [
+                                  colors.accent.withOpacity(0.15),
+                                  colors.card.withOpacity(0.05),
+                                ],
+                              ),
+                            ),
+                          ).animate().scale(delay: 150.ms, duration: 420.ms, begin: const Offset(0.8, 0.8)),
                         ),
                       ),
                       PageView.builder(
@@ -141,6 +183,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                             page.image,
                                             fit: BoxFit.cover,
                                           ).animate().fade(duration: 500.ms).scale(begin: const Offset(0.96, 0.96)),
+                                          Positioned(
+                                            top: 24,
+                                            left: 24,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                              decoration: BoxDecoration(
+                                                color: colors.cardAlt.withOpacity(0.72),
+                                                borderRadius: BorderRadius.circular(20),
+                                                border: Border.all(color: colors.divider.withOpacity(0.4)),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(IconlyBold.star, color: colors.accent, size: 18),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    localization.t('featured_spins'),
+                                                    style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.onSurface, fontWeight: FontWeight.w600),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
                                           Align(
                                             alignment: Alignment.bottomCenter,
                                             child: Container(
@@ -246,6 +311,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 320),
+                        child: Wrap(
+                          key: ValueKey<int>(_index),
+                          spacing: 12,
+                          runSpacing: 12,
+                          alignment: WrapAlignment.center,
+                          children: features
+                              .map(
+                                (feature) => AuthFeatureChip(
+                                  icon: feature.icon,
+                                  label: localization.t(feature.labelKey),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           TextButton(
@@ -295,4 +378,11 @@ class _StoryPage {
   final String subtitleEn;
   final String subtitleAr;
   final String image;
+}
+
+class _OnboardingFeature {
+  const _OnboardingFeature({required this.icon, required this.labelKey});
+
+  final IconData icon;
+  final String labelKey;
 }
