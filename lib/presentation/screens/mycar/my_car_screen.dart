@@ -4,6 +4,7 @@ import 'package:iconly/iconly.dart';
 import '../../../application/controllers/cars_controller.dart';
 import '../../../application/controllers/my_car_controller.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/car.dart';
 import '../../../domain/entities/offer_watch.dart';
 import '../../../domain/enums/condition.dart';
@@ -67,6 +68,7 @@ class _MyCarScreenState extends State<MyCarScreen> with SingleTickerProviderStat
 
   Widget _buildForm(BuildContext context, AppLocalizations l10n) {
     final controller = widget.controller;
+    final colors = AppColors.of(context);
     return Form(
       key: controller.formKey,
       child: ListView(
@@ -226,6 +228,18 @@ class _MyCarScreenState extends State<MyCarScreen> with SingleTickerProviderStat
           Text('${l10n.t('frames')}: ${controller.spinset360.length}'),
           const SizedBox(height: 12),
           _ImagePreview(urls: controller.spinset360),
+          const SizedBox(height: 24),
+          _SectionHeader(title: l10n.t('model_3d_url')),
+          TextFormField(
+            initialValue: controller.model3dUrl,
+            decoration: InputDecoration(hintText: l10n.t('model_3d_hint')),
+            onChanged: controller.updateModel3dUrl,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.t('model_3d_helper'),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.subtext),
+          ),
           const SizedBox(height: 24),
           _SectionHeader(title: l10n.t('maintenance')),
           Row(

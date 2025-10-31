@@ -38,6 +38,7 @@ class MyCarController extends ChangeNotifier {
 
   List<String> images = <String>[];
   List<String> spinset360 = <String>[];
+  String model3dUrl = '';
 
   final List<OfferWatch> _offerWatches = <OfferWatch>[];
   List<OfferWatch> get offerWatches => List.unmodifiable(_offerWatches);
@@ -54,6 +55,11 @@ class MyCarController extends ChangeNotifier {
 
   void updateSpinset(String value) {
     spinset360 = _parseMultiline(value);
+    notifyListeners();
+  }
+
+  void updateModel3dUrl(String value) {
+    model3dUrl = value.trim();
     notifyListeners();
   }
 
@@ -134,6 +140,7 @@ class MyCarController extends ChangeNotifier {
           ? '${brand.isEmpty ? 'Your car' : brand} ${model.isEmpty ? '' : model} listing.'
           : description,
       isFavorite: false,
+      model3dUrl: model3dUrl.isEmpty ? null : model3dUrl,
     );
   }
 

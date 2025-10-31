@@ -34,6 +34,7 @@
       "https://cdn.autodeck.app/spins/tesla/model_s/frame_23.jpg",
       "https://cdn.autodeck.app/spins/tesla/model_s/frame_24.jpg"
     ],
+    "model_3d_url": "https://modelviewer.dev/shared-assets/models/Car.glb",
     "price": 109990.0,
     "currency": "USD",
     "mileage_km": 12000,
@@ -86,6 +87,7 @@
       "https://cdn.autodeck.app/spins/tesla/model_3/frame_23.jpg",
       "https://cdn.autodeck.app/spins/tesla/model_3/frame_24.jpg"
     ],
+    "model_3d_url": "https://modelviewer.dev/shared-assets/models/Car.glb",
     "price": 52990.0,
     "currency": "USD",
     "mileage_km": 5000,
@@ -138,6 +140,7 @@
       "https://cdn.autodeck.app/spins/tesla/model_x/frame_23.jpg",
       "https://cdn.autodeck.app/spins/tesla/model_x/frame_24.jpg"
     ],
+    "model_3d_url": "https://modelviewer.dev/shared-assets/models/SportsCar.glb",
     "price": 99990.0,
     "currency": "USD",
     "mileage_km": 18000,
@@ -164,6 +167,7 @@
       "https://images.unsplash.com/photo-1519580930521-3dba8f04a47d"
     ],
     "spinset_360": [],
+    "model_3d_url": "https://modelviewer.dev/shared-assets/models/Car.glb",
     "price": 84990.0,
     "currency": "USD",
     "mileage_km": 32000,
@@ -215,6 +219,7 @@
       "https://images.unsplash.com/photo-1494972688394-4cc796f9e4c1"
     ],
     "spinset_360": [],
+    "model_3d_url": "https://modelviewer.dev/shared-assets/models/SUV.glb",
     "price": 98990.0,
     "currency": "USD",
     "mileage_km": 1500,

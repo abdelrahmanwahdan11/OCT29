@@ -33,6 +33,21 @@ class NextPhaseScreen extends StatelessWidget {
         descriptionKey: 'phase_finance_description',
         icon: Icons.payments_outlined,
       ),
+      _PhaseMilestone(
+        titleKey: 'phase_social_title',
+        descriptionKey: 'phase_social_description',
+        icon: Icons.groups_2_outlined,
+      ),
+      _PhaseMilestone(
+        titleKey: 'phase_subscription_title',
+        descriptionKey: 'phase_subscription_description',
+        icon: Icons.workspace_premium_outlined,
+      ),
+      _PhaseMilestone(
+        titleKey: 'phase_ar_title',
+        descriptionKey: 'phase_ar_description',
+        icon: Icons.view_in_ar,
+      ),
     ];
 
     return Scaffold(

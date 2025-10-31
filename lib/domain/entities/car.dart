@@ -26,6 +26,7 @@ class Car {
     required this.isFavorite,
     this.spinset360,
     this.batteryRangeKm,
+    this.model3dUrl,
   });
 
   final String id;
@@ -50,6 +51,7 @@ class Car {
   final Condition condition;
   final String description;
   final bool isFavorite;
+  final String? model3dUrl;
 
   String get title => '$brand $model';
 
@@ -79,6 +81,7 @@ class Car {
       condition: condition,
       description: description,
       isFavorite: isFavorite ?? this.isFavorite,
+      model3dUrl: model3dUrl,
     );
   }
 }
